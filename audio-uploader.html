@@ -502,14 +502,6 @@
                         <input type="password" id="apiKey" placeholder="pat...">
                     </div>
                     <div class="config-group">
-                        <label for="baseId">Base ID</label>
-                        <input type="text" id="baseId" placeholder="app...">
-                    </div>
-                    <div class="config-group">
-                        <label for="tableId">Table ID</label>
-                        <input type="text" id="tableId" placeholder="tbl...">
-                    </div>
-                    <div class="config-group">
                         <label for="specialNotes">Special Notes for Summary (optional)</label>
                         <textarea id="specialNotes" rows="2" placeholder="Notes to include in SpecialNotesSummary field"></textarea>
                     </div>
@@ -614,8 +606,6 @@
         // Storage keys
         const STORAGE_KEYS = {
             API_KEY: 'audio_uploader_airtable_api_key',
-            BASE_ID: 'audio_uploader_airtable_base_id',
-            TABLE_ID: 'audio_uploader_airtable_table_id',
             SPECIAL_NOTES: 'audio_uploader_special_notes'
         };
 
@@ -623,8 +613,8 @@
         const CONFIG = {
             CLOUD_FUNCTION_URL: 'https://functions.yandexcloud.net/d4e4902f1nkarshsn2sn',
             AIRTABLE_API_KEY: '',
-            AIRTABLE_BASE_ID: '',
-            AIRTABLE_TABLE_ID: '',
+            AIRTABLE_BASE_ID: 'appndBYladrJOkHXI',
+            AIRTABLE_TABLE_ID: 'tblTgETSM0RB4swZD',
             SPECIAL_NOTES: '',
             MAX_RETRIES: 3,
             RETRY_DELAY: 3000,
@@ -647,8 +637,6 @@
         const form = document.getElementById('videoForm');
         const submitBtn = document.getElementById('submitBtn');
         const apiKeyInput = document.getElementById('apiKey');
-        const baseIdInput = document.getElementById('baseId');
-        const tableIdInput = document.getElementById('tableId');
         const specialNotesInput = document.getElementById('specialNotes');
         const configStatus = document.getElementById('configStatus');
 
@@ -662,21 +650,11 @@
 
         function loadConfig() {
             const savedApiKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
-            const savedBaseId = localStorage.getItem(STORAGE_KEYS.BASE_ID);
-            const savedTableId = localStorage.getItem(STORAGE_KEYS.TABLE_ID);
             const savedSpecialNotes = localStorage.getItem(STORAGE_KEYS.SPECIAL_NOTES);
 
             if (savedApiKey) {
                 apiKeyInput.value = savedApiKey;
                 CONFIG.AIRTABLE_API_KEY = savedApiKey;
-            }
-            if (savedBaseId) {
-                baseIdInput.value = savedBaseId;
-                CONFIG.AIRTABLE_BASE_ID = savedBaseId;
-            }
-            if (savedTableId) {
-                tableIdInput.value = savedTableId;
-                CONFIG.AIRTABLE_TABLE_ID = savedTableId;
             }
             if (savedSpecialNotes) {
                 specialNotesInput.value = savedSpecialNotes;
@@ -693,18 +671,6 @@
                 validateConfig();
             });
 
-            baseIdInput.addEventListener('input', () => {
-                CONFIG.AIRTABLE_BASE_ID = baseIdInput.value.trim();
-                localStorage.setItem(STORAGE_KEYS.BASE_ID, CONFIG.AIRTABLE_BASE_ID);
-                validateConfig();
-            });
-
-            tableIdInput.addEventListener('input', () => {
-                CONFIG.AIRTABLE_TABLE_ID = tableIdInput.value.trim();
-                localStorage.setItem(STORAGE_KEYS.TABLE_ID, CONFIG.AIRTABLE_TABLE_ID);
-                validateConfig();
-            });
-
             specialNotesInput.addEventListener('input', () => {
                 CONFIG.SPECIAL_NOTES = specialNotesInput.value.trim();
                 localStorage.setItem(STORAGE_KEYS.SPECIAL_NOTES, CONFIG.SPECIAL_NOTES);
@@ -712,18 +678,14 @@
         }
 
         function validateConfig() {
-            const isValid = CONFIG.AIRTABLE_API_KEY && CONFIG.AIRTABLE_BASE_ID && CONFIG.AIRTABLE_TABLE_ID;
+            const isValid = !!CONFIG.AIRTABLE_API_KEY;
 
             if (isValid) {
-                configStatus.textContent = '✓ Configuration saved';
+                configStatus.textContent = '✓ API Key saved';
                 configStatus.className = 'config-status valid';
                 submitBtn.disabled = false;
             } else {
-                const missing = [];
-                if (!CONFIG.AIRTABLE_API_KEY) missing.push('API Key');
-                if (!CONFIG.AIRTABLE_BASE_ID) missing.push('Base ID');
-                if (!CONFIG.AIRTABLE_TABLE_ID) missing.push('Table ID');
-                configStatus.textContent = `Missing: ${missing.join(', ')}`;
+                configStatus.textContent = 'Please enter your Airtable API Key';
                 configStatus.className = 'config-status invalid';
                 submitBtn.disabled = true;
             }

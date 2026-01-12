@@ -407,14 +407,6 @@
                         <label for="apiKey">Airtable API Key</label>
                         <input type="password" id="apiKey" placeholder="pat...">
                     </div>
-                    <div class="config-group">
-                        <label for="baseId">Base ID</label>
-                        <input type="text" id="baseId" placeholder="app...">
-                    </div>
-                    <div class="config-group">
-                        <label for="tableId">Table ID</label>
-                        <input type="text" id="tableId" placeholder="tbl...">
-                    </div>
                 </div>
                 <div id="configStatus" class="config-status hidden"></div>
             </div>
@@ -458,16 +450,14 @@
     <script>
         // Storage keys
         const STORAGE_KEYS = {
-            API_KEY: 'pdf_uploader_airtable_api_key',
-            BASE_ID: 'pdf_uploader_airtable_base_id',
-            TABLE_ID: 'pdf_uploader_airtable_table_id'
+            API_KEY: 'pdf_uploader_airtable_api_key'
         };
 
-        // Configuration (loaded from localStorage)
+        // Configuration
         const CONFIG = {
             API_KEY: '',
-            BASE_ID: '',
-            TABLE_ID: '',
+            BASE_ID: 'appYUBbcP31jPWtE9',
+            TABLE_ID: 'tblZKVrTuRDpc1ImR',
             get API_URL() {
                 return `https://api.airtable.com/v0/${this.BASE_ID}/${this.TABLE_ID}`;
             },
@@ -495,8 +485,6 @@
 
         // DOM Elements
         const apiKeyInput = document.getElementById('apiKey');
-        const baseIdInput = document.getElementById('baseId');
-        const tableIdInput = document.getElementById('tableId');
         const configStatus = document.getElementById('configStatus');
         const dropZone = document.getElementById('dropZone');
 
@@ -510,20 +498,10 @@
 
         function loadConfig() {
             const savedApiKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
-            const savedBaseId = localStorage.getItem(STORAGE_KEYS.BASE_ID);
-            const savedTableId = localStorage.getItem(STORAGE_KEYS.TABLE_ID);
 
             if (savedApiKey) {
                 apiKeyInput.value = savedApiKey;
                 CONFIG.API_KEY = savedApiKey;
-            }
-            if (savedBaseId) {
-                baseIdInput.value = savedBaseId;
-                CONFIG.BASE_ID = savedBaseId;
-            }
-            if (savedTableId) {
-                tableIdInput.value = savedTableId;
-                CONFIG.TABLE_ID = savedTableId;
             }
 
             validateConfig();
@@ -535,33 +513,17 @@
                 localStorage.setItem(STORAGE_KEYS.API_KEY, CONFIG.API_KEY);
                 validateConfig();
             });
-
-            baseIdInput.addEventListener('input', () => {
-                CONFIG.BASE_ID = baseIdInput.value.trim();
-                localStorage.setItem(STORAGE_KEYS.BASE_ID, CONFIG.BASE_ID);
-                validateConfig();
-            });
-
-            tableIdInput.addEventListener('input', () => {
-                CONFIG.TABLE_ID = tableIdInput.value.trim();
-                localStorage.setItem(STORAGE_KEYS.TABLE_ID, CONFIG.TABLE_ID);
-                validateConfig();
-            });
         }
 
         function validateConfig() {
-            const isValid = CONFIG.API_KEY && CONFIG.BASE_ID && CONFIG.TABLE_ID;
+            const isValid = !!CONFIG.API_KEY;
 
             if (isValid) {
-                configStatus.textContent = '✓ Configuration saved';
+                configStatus.textContent = '✓ API Key saved';
                 configStatus.className = 'config-status valid';
                 dropZone.classList.remove('disabled');
             } else {
-                const missing = [];
-                if (!CONFIG.API_KEY) missing.push('API Key');
-                if (!CONFIG.BASE_ID) missing.push('Base ID');
-                if (!CONFIG.TABLE_ID) missing.push('Table ID');
-                configStatus.textContent = `Missing: ${missing.join(', ')}`;
+                configStatus.textContent = 'Please enter your Airtable API Key';
                 configStatus.className = 'config-status invalid';
                 dropZone.classList.add('disabled');
             }
