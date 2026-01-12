@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML to Markdown Parser</title>
+    <meta name="description" content="Convert HTML to Markdown with support for bold, italic, links, tables, and images">
+    <meta name="category" content="Text">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9fafb;
+            color: #1f2937;
+            line-height: 1.5;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0 0 8px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin: 0 0 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'SF Mono', Monaco, 'Inconsolata', 'Fira Code', monospace;
+            resize: vertical;
+            min-height: 180px;
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            background: #667eea;
+            color: white;
+            transition: background 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #5a67d8;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #d1d5db;
+        }
+
+        .error {
+            color: #ef4444;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .success {
+            color: #10b981;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .hidden { display: none; }
+        .mt-8 { margin-top: 8px; }
+        .mt-16 { margin-top: 16px; }
+        .flex { display: flex; gap: 8px; align-items: center; }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #667eea;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <h1>HTML to Markdown Parser</h1>
+    <p class="subtitle">Convert HTML to Markdown. Preserves tables and images as HTML, supports bold, italic, and links.</p>
+
+    <div class="card">
+        <label class="label" for="htmlInput">Paste HTML Content</label>
+        <textarea class="textarea" id="htmlInput" placeholder="Paste your HTML content here..."></textarea>
+
+        <div class="mt-16">
+            <label class="checkbox-label">
+                <input type="checkbox" id="includeHeadersFooters">
+                Include headers and footers
+            </label>
+        </div>
+
+        <div class="flex mt-16">
+            <button class="btn" id="convertBtn" onclick="convertToMarkdown()">Convert to Markdown</button>
+            <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+        <div id="success" class="success hidden"></div>
+    </div>
+
+    <div class="card" id="outputCard" style="display: none;">
+        <div class="output-header">
+            <label class="label">Markdown Output</label>
+            <button class="btn btn-secondary" onclick="copyOutput()">Copy</button>
+        </div>
+        <textarea class="textarea" id="markdownOutput" readonly></textarea>
+    </div>
+
+    <script>
+        const elements = {
+            htmlInput: document.getElementById('htmlInput'),
+            markdownOutput: document.getElementById('markdownOutput'),
+            outputCard: document.getElementById('outputCard'),
+            includeHeadersFooters: document.getElementById('includeHeadersFooters'),
+            error: document.getElementById('error'),
+            success: document.getElementById('success')
+        };
+
+        // Remove class attributes from HTML elements
+        function removeClassAttributes(htmlString) {
+            return htmlString
+                .replace(/\s+class\s*=\s*"[^"]*"/gi, '')
+                .replace(/\s+class\s*=\s*'[^']*'/gi, '');
+        }
+
+        // Check if text is likely CSS/layout related
+        function isCSSOrLayout(text) {
+            const cssPatterns = [
+                /^@media/,
+                /^\.[a-zA-Z]/,
+                /^#[a-zA-Z]/,
+                /\{.*\}/,
+                /^layout_\d+/,
+                /^height:/,
+                /^width:/,
+                /^margin:/,
+                /^padding:/,
+                /^color:/,
+                /^font-size:/,
+                /^background:/,
+                /^border:/
+            ];
+            return cssPatterns.some(pattern => pattern.test(text.trim()));
+        }
+
+        // Convert text with inline formatting
+        function processInlineFormatting(node) {
+            let result = '';
+
+            for (const child of node.childNodes) {
+                if (child.nodeType === Node.TEXT_NODE) {
+                    result += child.textContent;
+                } else if (child.nodeType === Node.ELEMENT_NODE) {
+                    const tagName = child.tagName.toLowerCase();
+                    const innerText = child.textContent;
+
+                    switch (tagName) {
+                        case 'strong':
+                        case 'b':
+                            result += `**${innerText}**`;
+                            break;
+                        case 'em':
+                        case 'i':
+                            result += `*${innerText}*`;
+                            break;
+                        case 'a':
+                            const href = child.getAttribute('href');
+                            if (href) {
+                                result += `[${innerText}](${href})`;
+                            } else {
+                                result += innerText;
+                            }
+                            break;
+                        default:
+                            result += processInlineFormatting(child);
+                            break;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        // Extract text content recursively
+        function extractText(node, includeHeadersFooters) {
+            let result = '';
+
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent.trim();
+                if (text && !isCSSOrLayout(text)) {
+                    result += text + '\n';
+                }
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                const tagName = node.tagName.toLowerCase();
+
+                // Skip style and script elements
+                if (tagName === 'style' || tagName === 'script') {
+                    return '';
+                }
+
+                // Skip headers and footers if toggle is off
+                if (!includeHeadersFooters && (tagName === 'header' || tagName === 'footer')) {
+                    return '';
+                }
+
+                // Preserve tables as HTML
+                if (tagName === 'table') {
+                    result += removeClassAttributes(node.outerHTML) + '\n\n';
+                }
+                // Preserve images and figures as HTML
+                else if (tagName === 'img' || tagName === 'figure') {
+                    result += removeClassAttributes(node.outerHTML) + '\n\n';
+                }
+                // Handle headings
+                else if (node.tagName.match(/^H[1-6]$/)) {
+                    const level = node.tagName[1];
+                    const prefix = '#'.repeat(level) + ' ';
+                    const text = processInlineFormatting(node);
+                    if (text.trim() && !isCSSOrLayout(text)) {
+                        result += prefix + text.trim() + '\n\n';
+                    }
+                }
+                // Handle lists
+                else if (tagName === 'li') {
+                    const text = processInlineFormatting(node);
+                    if (text.trim() && !isCSSOrLayout(text)) {
+                        result += '* ' + text.trim() + '\n';
+                    }
+                }
+                // Handle paragraphs
+                else if (tagName === 'p') {
+                    const text = processInlineFormatting(node);
+                    if (text.trim() && !isCSSOrLayout(text)) {
+                        result += text.trim() + '\n\n';
+                    }
+                }
+                // Handle divs and other containers
+                else if (['div', 'section', 'article', 'header', 'footer', 'main'].includes(tagName)) {
+                    for (const child of node.childNodes) {
+                        result += extractText(child, includeHeadersFooters);
+                    }
+                }
+                // Process other elements
+                else {
+                    for (const child of node.childNodes) {
+                        result += extractText(child, includeHeadersFooters);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        function convertToMarkdown() {
+            hideMessages();
+
+            const htmlInput = elements.htmlInput.value.trim();
+            if (!htmlInput) {
+                showError('Please paste some HTML content');
+                return;
+            }
+
+            try {
+                const includeHeadersFooters = elements.includeHeadersFooters.checked;
+                const doc = new DOMParser().parseFromString(htmlInput, 'text/html');
+                const markdown = extractText(doc.body, includeHeadersFooters);
+
+                // Clean up extra newlines and spaces
+                const cleanMarkdown = markdown
+                    .replace(/\n{3,}/g, '\n\n')
+                    .replace(/^\s+|\s+$/g, '')
+                    .split('\n')
+                    .filter(line => !isCSSOrLayout(line))
+                    .join('\n');
+
+                elements.markdownOutput.value = cleanMarkdown;
+                elements.outputCard.style.display = 'block';
+                showSuccess('Converted successfully!');
+            } catch (error) {
+                showError('Error parsing HTML: ' + error.message);
+            }
+        }
+
+        function clearAll() {
+            elements.htmlInput.value = '';
+            elements.markdownOutput.value = '';
+            elements.outputCard.style.display = 'none';
+            hideMessages();
+        }
+
+        function copyOutput() {
+            navigator.clipboard.writeText(elements.markdownOutput.value)
+                .then(() => showSuccess('Copied to clipboard!'))
+                .catch(() => {
+                    // Fallback for older browsers
+                    elements.markdownOutput.select();
+                    elements.markdownOutput.setSelectionRange(0, 99999);
+                    document.execCommand('copy');
+                    window.getSelection().removeAllRanges();
+                    showSuccess('Copied to clipboard!');
+                });
+        }
+
+        function showError(message) {
+            elements.error.textContent = message;
+            elements.error.classList.remove('hidden');
+            elements.success.classList.add('hidden');
+        }
+
+        function showSuccess(message) {
+            elements.success.textContent = message;
+            elements.success.classList.remove('hidden');
+            elements.error.classList.add('hidden');
+        }
+
+        function hideMessages() {
+            elements.error.classList.add('hidden');
+            elements.success.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
