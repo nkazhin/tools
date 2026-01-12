@@ -1,0 +1,207 @@
+name: Build Index and Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build index.html
+        run: |
+          python3 << 'EOF'
+          import os
+          import re
+          from pathlib import Path
+          from datetime import datetime
+
+          # Scan for HTML files
+          tools = []
+          for f in Path('.').glob('*.html'):
+              if f.name == 'index.html':
+                  continue
+
+              content = f.read_text(encoding='utf-8', errors='ignore')
+
+              # Extract title
+              title_match = re.search(r'<title>([^<]+)</title>', content, re.IGNORECASE)
+              title = title_match.group(1).strip() if title_match else f.stem.replace('-', ' ').title()
+
+              # Extract description
+              desc_match = re.search(r'<meta\s+name=["\']description["\']\s+content=["\']([^"\']+)["\']', content, re.IGNORECASE)
+              if not desc_match:
+                  desc_match = re.search(r'<meta\s+content=["\']([^"\']+)["\']\s+name=["\']description["\']', content, re.IGNORECASE)
+              description = desc_match.group(1).strip() if desc_match else ''
+
+              # Extract category
+              cat_match = re.search(r'<meta\s+name=["\']category["\']\s+content=["\']([^"\']+)["\']', content, re.IGNORECASE)
+              if not cat_match:
+                  cat_match = re.search(r'<meta\s+content=["\']([^"\']+)["\']\s+name=["\']category["\']', content, re.IGNORECASE)
+              category = cat_match.group(1).strip() if cat_match else 'Uncategorized'
+
+              tools.append({
+                  'file': f.name,
+                  'title': title,
+                  'description': description,
+                  'category': category
+              })
+
+          # Group by category
+          categories = {}
+          for tool in sorted(tools, key=lambda x: x['title'].lower()):
+              cat = tool['category']
+              if cat not in categories:
+                  categories[cat] = []
+              categories[cat].append(tool)
+
+          # Sort categories (Uncategorized last)
+          sorted_cats = sorted(categories.keys(), key=lambda x: (x == 'Uncategorized', x.lower()))
+
+          # Generate HTML
+          html = '''<!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Tools</title>
+              <style>
+                  * { box-sizing: border-box; }
+                  body {
+                      font-family: system-ui, -apple-system, sans-serif;
+                      max-width: 800px;
+                      margin: 0 auto;
+                      padding: 24px 16px;
+                      background: #fafafa;
+                      color: #1a1a1a;
+                      line-height: 1.5;
+                  }
+                  h1 {
+                      font-size: 28px;
+                      margin: 0 0 8px;
+                      font-weight: 600;
+                  }
+                  .subtitle {
+                      color: #666;
+                      margin: 0 0 32px;
+                      font-size: 15px;
+                  }
+                  .category {
+                      margin-bottom: 32px;
+                  }
+                  .category h2 {
+                      font-size: 14px;
+                      text-transform: uppercase;
+                      letter-spacing: 0.5px;
+                      color: #888;
+                      margin: 0 0 12px;
+                      padding-bottom: 8px;
+                      border-bottom: 1px solid #e5e5e5;
+                      font-weight: 500;
+                  }
+                  .tool {
+                      padding: 12px 0;
+                      border-bottom: 1px solid #eee;
+                  }
+                  .tool:last-child {
+                      border-bottom: none;
+                  }
+                  .tool a {
+                      color: #0066cc;
+                      text-decoration: none;
+                      font-weight: 500;
+                      font-size: 15px;
+                  }
+                  .tool a:hover {
+                      text-decoration: underline;
+                  }
+                  .tool-desc {
+                      color: #666;
+                      font-size: 14px;
+                      margin-top: 4px;
+                  }
+                  .count {
+                      background: #e5e5e5;
+                      color: #666;
+                      font-size: 12px;
+                      padding: 2px 8px;
+                      border-radius: 10px;
+                      margin-left: 8px;
+                  }
+                  .footer {
+                      margin-top: 48px;
+                      padding-top: 24px;
+                      border-top: 1px solid #e5e5e5;
+                      font-size: 13px;
+                      color: #888;
+                  }
+                  @media (max-width: 600px) {
+                      body { padding: 16px 12px; }
+                      h1 { font-size: 24px; }
+                  }
+              </style>
+          </head>
+          <body>
+              <h1>Tools</h1>
+              <p class="subtitle">''' + str(len(tools)) + ''' tools available</p>
+          '''
+
+          for cat in sorted_cats:
+              cat_tools = categories[cat]
+              html += f'''
+              <div class="category">
+                  <h2>{cat} <span class="count">{len(cat_tools)}</span></h2>
+          '''
+              for tool in cat_tools:
+                  html += f'''        <div class="tool">
+                      <a href="{tool['file']}">{tool['title']}</a>
+          '''
+                  if tool['description']:
+                      html += f'''            <div class="tool-desc">{tool['description']}</div>
+          '''
+                  html += '''        </div>
+          '''
+              html += '''    </div>
+          '''
+
+          html += '''
+              <div class="footer">
+                  Last updated: ''' + datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC') + '''
+              </div>
+          </body>
+          </html>'''
+
+          Path('index.html').write_text(html)
+          print(f"Generated index.html with {len(tools)} tools in {len(categories)} categories")
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

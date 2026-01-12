@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Broadcaster (Markdown)</title>
+    <meta name="description" content="Send messages to Telegram users with legacy Markdown formatting">
+    <meta name="category" content="Telegram">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f9fafb;
+            color: #1f2937;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 8px 0 0; opacity: 0.9; font-size: 14px; }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        .card h2 { margin: 0 0 16px; font-size: 18px; color: #374151; }
+        .input-group { margin-bottom: 16px; }
+        .label { display: block; font-weight: 500; margin-bottom: 6px; color: #374151; font-size: 14px; }
+        .input, .textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            background: #fff;
+        }
+        .input:focus, .textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: 'SF Mono', 'Monaco', monospace;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #667eea;
+            color: white;
+            transition: all 0.2s;
+        }
+        .btn:hover:not(:disabled) { background: #5a67d8; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary { background: #e5e7eb; color: #374151; }
+        .btn-secondary:hover:not(:disabled) { background: #d1d5db; }
+        .btn-danger { background: #ef4444; }
+        .btn-danger:hover:not(:disabled) { background: #dc2626; }
+        .btn-sm { padding: 4px 8px; font-size: 12px; }
+        .settings-panel {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .settings-panel h3 { margin: 0 0 12px; font-size: 16px; color: #92400e; }
+        .settings-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .settings-row .input { flex: 1; }
+        .stored-indicator { font-size: 12px; color: #10b981; }
+        .markdown-help {
+            background: #f0f9ff;
+            border: 1px solid #e0f2fe;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+        .markdown-help code {
+            background: #dbeafe;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'SF Mono', 'Monaco', monospace;
+        }
+        .char-counter { font-size: 12px; text-align: right; margin-top: 4px; color: #6b7280; }
+        .char-counter.danger { color: #ef4444; }
+        .media-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+        .media-tab {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            background: white;
+            cursor: pointer;
+            text-align: center;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .media-tab.active { background: #667eea; color: white; border-color: #667eea; }
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+        .progress-bar { width: 100%; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; margin: 16px 0; }
+        .progress-fill { height: 100%; background: #667eea; transition: width 0.3s; width: 0%; }
+        .error-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 12px;
+            padding: 12px;
+            background: #fef2f2;
+            border-radius: 6px;
+            font-size: 13px;
+            border: 1px solid #fecaca;
+        }
+        .error-item { margin-bottom: 8px; color: #991b1b; }
+        .success-text { color: #10b981; font-weight: 500; }
+        .error-text { color: #ef4444; font-weight: 500; }
+        .flex { display: flex; align-items: center; gap: 8px; }
+        .flex-wrap { flex-wrap: wrap; }
+        .ml-auto { margin-left: auto; }
+        .mt-8 { margin-top: 8px; }
+        .mt-12 { margin-top: 12px; }
+        .mt-16 { margin-top: 16px; }
+        .hidden { display: none; }
+        .text-sm { font-size: 12px; }
+        @media (min-width: 769px) {
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            .full-width { grid-column: 1 / -1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Telegram Broadcaster (Markdown)</h1>
+            <p>Send messages with legacy Markdown formatting</p>
+        </header>
+
+        <!-- Settings Panel -->
+        <div class="settings-panel">
+            <h3>⚙️ Settings</h3>
+            <div class="settings-row">
+                <input type="password" class="input" id="botTokenInput" placeholder="Enter Telegram Bot Token">
+                <button class="btn btn-sm" onclick="saveToken()">Save</button>
+                <button class="btn btn-sm btn-secondary" onclick="clearToken()">Clear</button>
+            </div>
+            <div id="tokenStatus" class="mt-8"></div>
+            <div class="settings-row mt-12">
+                <input type="text" class="input" id="testRecipientInput" placeholder="Test Recipient ID">
+                <button class="btn btn-sm" onclick="saveTestRecipient()">Save</button>
+            </div>
+            <div id="testRecipientStatus" class="mt-8"></div>
+        </div>
+
+        <div class="grid">
+            <!-- Message Composition -->
+            <div class="card">
+                <h2>Message</h2>
+                <div class="markdown-help">
+                    <strong>Legacy Markdown:</strong>
+                    <code>*bold*</code>, <code>_italic_</code>, <code>`code`</code>, <code>[link](url)</code>
+                </div>
+                <div class="input-group">
+                    <label class="label" id="messageLabel">Message</label>
+                    <textarea class="textarea" id="messageInput" rows="8" placeholder="Enter your message with Markdown..."></textarea>
+                    <div class="char-counter" id="charCounter">0 / 4096</div>
+                </div>
+
+                <div class="input-group">
+                    <label class="label">Link Preview</label>
+                    <div class="checkbox-group">
+                        <label class="flex text-sm"><input type="checkbox" id="disableLinkPreview"> Disable link preview</label>
+                        <label class="flex text-sm"><input type="checkbox" id="preferLargeMedia"> Prefer large media</label>
+                        <label class="flex text-sm"><input type="checkbox" id="showAboveText"> Show above text</label>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="label">Media</label>
+                    <div class="media-tabs">
+                        <button class="media-tab active" onclick="setMediaType('none', this)">None</button>
+                        <button class="media-tab" onclick="setMediaType('upload', this)">Upload</button>
+                        <button class="media-tab" onclick="setMediaType('url', this)">URL</button>
+                    </div>
+                    <div id="mediaUpload" class="hidden">
+                        <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                        <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">Choose File</button>
+                        <span id="selectedFile" class="text-sm mt-8" style="display: block;"></span>
+                    </div>
+                    <div id="mediaUrl" class="hidden">
+                        <input class="input" id="mediaUrlInput" placeholder="https://example.com/image.jpg">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="label">Reply Markup (JSON)</label>
+                    <textarea class="textarea" id="replyMarkupInput" rows="4" placeholder='{"inline_keyboard": [[{"text": "Button", "url": "..."}]]}'></textarea>
+                </div>
+            </div>
+
+            <!-- Recipients -->
+            <div class="card">
+                <h2>Recipients</h2>
+                <div class="input-group">
+                    <label class="label">Recipient IDs</label>
+                    <textarea class="textarea" id="recipientsInput" rows="6" placeholder="123456789, 987654321&#10;555555555"></textarea>
+                    <div class="mt-8 flex text-sm" style="gap: 16px;">
+                        <span class="success-text">Valid: <span id="validCount">0</span></span>
+                        <span class="error-text" id="invalidWrapper" style="display: none;">Invalid: <span id="invalidCount">0</span></span>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="flex text-sm"><input type="checkbox" id="disableNotification"> Send silently</label>
+                    <label class="flex text-sm"><input type="checkbox" id="protectContent"> Protect content</label>
+                </div>
+            </div>
+
+            <!-- Broadcast Control -->
+            <div class="card full-width">
+                <h2>Broadcast</h2>
+                <div class="flex flex-wrap">
+                    <button class="btn btn-secondary" id="testBtn" onclick="startBroadcast(true)" disabled>Send Test</button>
+                    <button class="btn" id="broadcastBtn" onclick="startBroadcast(false)" disabled>Start Broadcast</button>
+                    <button class="btn btn-secondary hidden" id="pauseBtn" onclick="togglePause()">Pause</button>
+                    <button class="btn btn-secondary hidden" id="resumeBtn" onclick="togglePause()">Resume</button>
+                    <button class="btn btn-danger hidden" id="stopBtn" onclick="stopBroadcast()">Stop</button>
+                    <button class="btn btn-danger ml-auto" onclick="clearAll()">Clear</button>
+                </div>
+
+                <div id="progressWrapper" class="hidden mt-16">
+                    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                    <div class="text-sm"><span id="progressText">0</span>% <span id="pausedText" class="hidden">(Paused)</span></div>
+                </div>
+
+                <div id="resultsWrapper" class="hidden mt-16">
+                    <div class="flex" style="gap: 24px;">
+                        <span class="success-text">Success: <span id="successCount">0</span></span>
+                        <span class="error-text">Failed: <span id="failedCount">0</span></span>
+                        <span class="text-sm">Rate: <span id="successRate">0</span>%</span>
+                    </div>
+                    <div id="errorSection" class="hidden">
+                        <div class="flex mt-8" style="gap: 8px;">
+                            <button class="btn btn-secondary btn-sm" onclick="copyFailedIds()">Copy Failed IDs</button>
+                        </div>
+                        <div class="error-list mt-8"><strong>Errors:</strong><div id="errorList"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEYS = {
+            BOT_TOKEN: 'telegram_broadcaster_md_bot_token',
+            TEST_RECIPIENT: 'telegram_broadcaster_md_test_recipient'
+        };
+        const TEXT_LIMIT = 4096;
+        const CAPTION_LIMIT = 1024;
+
+        const state = {
+            tokenValidated: false,
+            botInfo: null,
+            validatedRecipients: [],
+            broadcasting: false,
+            paused: false,
+            pauseFlag: false,
+            progress: 0,
+            results: { success: 0, failed: 0, errors: [] },
+            abortController: null,
+            mediaType: 'none',
+            mediaFile: null
+        };
+
+        const UI = {
+            messageInput: document.getElementById('messageInput'),
+            recipientsInput: document.getElementById('recipientsInput'),
+            botTokenInput: document.getElementById('botTokenInput'),
+            testRecipientInput: document.getElementById('testRecipientInput'),
+            testBtn: document.getElementById('testBtn'),
+            broadcastBtn: document.getElementById('broadcastBtn'),
+            mediaUrlInput: document.getElementById('mediaUrlInput'),
+            replyMarkupInput: document.getElementById('replyMarkupInput')
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            UI.messageInput.addEventListener('input', updateCharCounter);
+            UI.recipientsInput.addEventListener('input', parseRecipients);
+            document.getElementById('fileInput').addEventListener('change', e => {
+                state.mediaFile = e.target.files[0];
+                document.getElementById('selectedFile').textContent = state.mediaFile ? state.mediaFile.name : '';
+            });
+            document.getElementById('disableLinkPreview').addEventListener('change', function() {
+                document.getElementById('preferLargeMedia').disabled = this.checked;
+                document.getElementById('showAboveText').disabled = this.checked;
+            });
+            parseRecipients();
+            updateCharCounter();
+        });
+
+        function loadSettings() {
+            const token = localStorage.getItem(STORAGE_KEYS.BOT_TOKEN);
+            const testRecipient = localStorage.getItem(STORAGE_KEYS.TEST_RECIPIENT);
+            if (token) { UI.botTokenInput.value = token; validateToken(token); }
+            else updateTokenStatus(false, 'No token configured');
+            if (testRecipient) { UI.testRecipientInput.value = testRecipient; updateTestStatus(true); }
+            else updateTestStatus(false, 'No test recipient');
+        }
+
+        function saveToken() {
+            const token = UI.botTokenInput.value.trim();
+            if (!token) return alert('Enter a token');
+            localStorage.setItem(STORAGE_KEYS.BOT_TOKEN, token);
+            validateToken(token);
+        }
+
+        function clearToken() {
+            if (!confirm('Remove saved token?')) return;
+            localStorage.removeItem(STORAGE_KEYS.BOT_TOKEN);
+            UI.botTokenInput.value = '';
+            state.tokenValidated = false;
+            state.botInfo = null;
+            updateTokenStatus(false, 'Token removed');
+            updateButtons();
+        }
+
+        function saveTestRecipient() {
+            const id = UI.testRecipientInput.value.trim();
+            if (!/^-?\d+$/.test(id)) return alert('Enter valid ID');
+            localStorage.setItem(STORAGE_KEYS.TEST_RECIPIENT, id);
+            updateTestStatus(true);
+        }
+
+        async function validateToken(token) {
+            try {
+                const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+                const data = await res.json();
+                if (data.ok) {
+                    state.botInfo = data.result;
+                    state.tokenValidated = true;
+                    updateTokenStatus(true);
+                } else {
+                    state.tokenValidated = false;
+                    updateTokenStatus(false, data.description);
+                }
+            } catch { state.tokenValidated = false; updateTokenStatus(false, 'Network error'); }
+            updateButtons();
+        }
+
+        function updateTokenStatus(ok, msg) {
+            document.getElementById('tokenStatus').innerHTML = ok && state.botInfo
+                ? `<span class="stored-indicator">✓ @${state.botInfo.username}</span>`
+                : `<span class="text-sm" style="color:#6b7280">${msg}</span>`;
+        }
+
+        function updateTestStatus(ok, msg) {
+            document.getElementById('testRecipientStatus').innerHTML = ok
+                ? '<span class="stored-indicator">✓ Saved</span>'
+                : `<span class="text-sm" style="color:#6b7280">${msg || ''}</span>`;
+        }
+
+        function updateCharCounter() {
+            const len = UI.messageInput.value.length;
+            const limit = state.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
+            const counter = document.getElementById('charCounter');
+            counter.textContent = `${len} / ${limit}`;
+            counter.classList.toggle('danger', len > limit);
+            updateButtons();
+        }
+
+        function parseRecipients() {
+            const input = UI.recipientsInput.value.trim();
+            if (!input) { state.validatedRecipients = []; updateRecipientStats(); updateButtons(); return; }
+            let ids = [];
+            try { const p = JSON.parse(input); if (Array.isArray(p)) ids = p.map(String); }
+            catch { ids = input.replace(/[\[\]"']/g, '').split(/[,\s\n]+/).filter(Boolean); }
+            const unique = [...new Set(ids)];
+            const valid = [], invalid = [];
+            unique.forEach(id => (/^-?\d+$/.test(id) ? valid : invalid).push(id));
+            state.validatedRecipients = valid;
+            state.invalidRecipients = invalid;
+            updateRecipientStats();
+            updateButtons();
+        }
+
+        function updateRecipientStats() {
+            document.getElementById('validCount').textContent = state.validatedRecipients.length;
+            const inv = document.getElementById('invalidWrapper');
+            if (state.invalidRecipients?.length > 0) {
+                inv.style.display = 'inline';
+                document.getElementById('invalidCount').textContent = state.invalidRecipients.length;
+            } else inv.style.display = 'none';
+        }
+
+        function setMediaType(type, el) {
+            state.mediaType = type;
+            document.querySelectorAll('.media-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('mediaUpload').classList.toggle('hidden', type !== 'upload');
+            document.getElementById('mediaUrl').classList.toggle('hidden', type !== 'url');
+            document.getElementById('messageLabel').textContent = type !== 'none' ? 'Caption' : 'Message';
+            updateCharCounter();
+        }
+
+        function updateButtons() {
+            const len = UI.messageInput.value.length;
+            const limit = state.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
+            const hasMsg = len > 0 || state.mediaType !== 'none';
+            const testRec = localStorage.getItem(STORAGE_KEYS.TEST_RECIPIENT);
+            UI.testBtn.disabled = !state.tokenValidated || !testRec || state.broadcasting || !hasMsg || len > limit;
+            UI.broadcastBtn.disabled = !state.tokenValidated || !state.validatedRecipients.length || state.broadcasting || !hasMsg || len > limit;
+        }
+
+        async function sendMessage(chatId, data, signal) {
+            const endpoint = data.mediaType !== 'none' ? 'sendPhoto' : 'sendMessage';
+            const fd = new FormData();
+            fd.append('chat_id', chatId);
+            fd.append('parse_mode', 'Markdown');
+            fd.append('disable_notification', data.disableNotification);
+            fd.append('protect_content', data.protectContent);
+            if (data.replyMarkup) fd.append('reply_markup', JSON.stringify(data.replyMarkup));
+            if (data.mediaType === 'none' && data.linkPreviewOptions) fd.append('link_preview_options', JSON.stringify(data.linkPreviewOptions));
+            if (data.mediaType !== 'none') {
+                if (data.mediaFile) fd.append('photo', data.mediaFile);
+                else if (data.mediaUrl) fd.append('photo', data.mediaUrl);
+                if (data.message) fd.append('caption', data.message);
+            } else fd.append('text', data.message);
+            const res = await fetch(`https://api.telegram.org/bot${data.token}/${endpoint}`, { method: 'POST', body: fd, signal });
+            const json = await res.json();
+            if (!json.ok) throw new Error(json.description);
+            return json;
+        }
+
+        async function startBroadcast(isTest) {
+            const token = localStorage.getItem(STORAGE_KEYS.BOT_TOKEN);
+            const testRecipient = localStorage.getItem(STORAGE_KEYS.TEST_RECIPIENT);
+            if (!state.tokenValidated) return alert('Configure token first');
+            if (isTest && !testRecipient) return alert('Configure test recipient first');
+            if (!isTest && !state.validatedRecipients.length) return alert('Add recipients');
+            const message = UI.messageInput.value;
+            if (!message && state.mediaType === 'none') return alert('Enter message or add media');
+            const limit = state.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
+            if (message.length > limit) return alert(`Message exceeds ${limit} chars`);
+
+            let replyMarkup = null;
+            if (UI.replyMarkupInput.value.trim()) {
+                try { replyMarkup = JSON.parse(UI.replyMarkupInput.value); }
+                catch (e) { return alert('Invalid JSON: ' + e.message); }
+            }
+
+            let linkPreviewOptions = null;
+            if (document.getElementById('disableLinkPreview').checked) linkPreviewOptions = { is_disabled: true };
+            else if (document.getElementById('preferLargeMedia').checked || document.getElementById('showAboveText').checked) {
+                linkPreviewOptions = {};
+                if (document.getElementById('preferLargeMedia').checked) linkPreviewOptions.prefer_large_media = true;
+                if (document.getElementById('showAboveText').checked) linkPreviewOptions.show_above_text = true;
+            }
+
+            const data = {
+                token, message, mediaType: state.mediaType,
+                mediaFile: state.mediaFile, mediaUrl: UI.mediaUrlInput.value,
+                disableNotification: document.getElementById('disableNotification').checked,
+                protectContent: document.getElementById('protectContent').checked,
+                replyMarkup, linkPreviewOptions
+            };
+
+            const recipients = isTest ? [testRecipient] : state.validatedRecipients;
+            if (!isTest && recipients.length > 50 && !confirm(`Send to ${recipients.length} recipients?`)) return;
+
+            state.broadcasting = true;
+            state.paused = false;
+            state.pauseFlag = false;
+            state.progress = 0;
+            state.results = { success: 0, failed: 0, errors: [] };
+            state.abortController = new AbortController();
+            updateBroadcastUI();
+
+            for (let i = 0; i < recipients.length; i++) {
+                if (state.pauseFlag) {
+                    state.paused = true;
+                    updateBroadcastUI();
+                    await new Promise(r => { const c = setInterval(() => { if (!state.pauseFlag) { clearInterval(c); state.paused = false; updateBroadcastUI(); r(); }}, 100); });
+                }
+                if (state.abortController.signal.aborted) break;
+                try {
+                    await sendMessage(recipients[i], data, state.abortController.signal);
+                    state.results.success++;
+                } catch (e) {
+                    state.results.failed++;
+                    state.results.errors.push({ recipient: recipients[i], error: e.message });
+                    if (e.message.includes('Too Many Requests')) {
+                        await new Promise(r => setTimeout(r, 5000));
+                        i--;
+                        continue;
+                    }
+                }
+                state.progress = ((i + 1) / recipients.length) * 100;
+                updateProgress();
+                if ((i + 1) % 30 === 0 && i < recipients.length - 1) await new Promise(r => setTimeout(r, 1000));
+            }
+
+            state.broadcasting = false;
+            updateBroadcastUI();
+            showResults();
+            if (isTest) alert(state.results.success ? 'Test sent!' : `Failed: ${state.results.errors[0]?.error}`);
+        }
+
+        function togglePause() { state.pauseFlag = !state.pauseFlag; updateBroadcastUI(); }
+        function stopBroadcast() { state.abortController?.abort(); state.broadcasting = false; updateBroadcastUI(); }
+
+        function updateBroadcastUI() {
+            UI.testBtn.disabled = state.broadcasting;
+            UI.broadcastBtn.disabled = state.broadcasting;
+            document.getElementById('pauseBtn').classList.toggle('hidden', !state.broadcasting || state.paused);
+            document.getElementById('resumeBtn').classList.toggle('hidden', !state.broadcasting || !state.paused);
+            document.getElementById('stopBtn').classList.toggle('hidden', !state.broadcasting);
+            document.getElementById('progressWrapper').classList.toggle('hidden', !state.broadcasting);
+            document.getElementById('pausedText').classList.toggle('hidden', !state.paused);
+        }
+
+        function updateProgress() {
+            document.getElementById('progressFill').style.width = state.progress + '%';
+            document.getElementById('progressText').textContent = Math.round(state.progress);
+        }
+
+        function showResults() {
+            if (!state.results.success && !state.results.failed) return;
+            document.getElementById('resultsWrapper').classList.remove('hidden');
+            document.getElementById('successCount').textContent = state.results.success;
+            document.getElementById('failedCount').textContent = state.results.failed;
+            const total = state.results.success + state.results.failed;
+            document.getElementById('successRate').textContent = total ? ((state.results.success / total) * 100).toFixed(1) : 0;
+            const errSec = document.getElementById('errorSection');
+            if (state.results.errors.length) {
+                errSec.classList.remove('hidden');
+                document.getElementById('errorList').innerHTML = state.results.errors.map(e => `<div class="error-item"><b>${e.recipient}:</b> ${e.error}</div>`).join('');
+            } else errSec.classList.add('hidden');
+        }
+
+        function copyFailedIds() {
+            navigator.clipboard.writeText(state.results.errors.map(e => e.recipient).join(', ')).then(() => alert('Copied!'));
+        }
+
+        function clearAll() {
+            if (!confirm('Clear all?')) return;
+            UI.messageInput.value = '';
+            UI.recipientsInput.value = '';
+            UI.mediaUrlInput.value = '';
+            UI.replyMarkupInput.value = '';
+            document.getElementById('fileInput').value = '';
+            state.mediaFile = null;
+            document.getElementById('selectedFile').textContent = '';
+            parseRecipients();
+            updateCharCounter();
+            document.getElementById('resultsWrapper').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
