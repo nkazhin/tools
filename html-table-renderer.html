@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Multi-Table Renderer</title>
+    <meta name="description" content="Render and preview multiple HTML tables with styling and formatting">
+    <meta name="category" content="Development">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        #tableInput {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        #tableInput:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        .button-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        #renderButton {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #renderButton:hover {
+            background-color: #0056b3;
+        }
+
+        #renderButton:active {
+            transform: translateY(1px);
+        }
+
+        .output-section {
+            margin-top: 30px;
+        }
+
+        #output {
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            padding: 20px;
+            background-color: #fafafa;
+            min-height: 100px;
+            overflow-x: auto;
+            max-width: 100%;
+        }
+
+        /* Universal table styling with borders - optimized for wide tables */
+        .rendered-table-container {
+            margin-bottom: 40px;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 30px;
+        }
+
+        .rendered-table-container:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        #output table {
+            border-collapse: collapse;
+            width: auto;
+            min-width: 100%;
+            margin: 0;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            font-size: 12px;
+        }
+
+        #output table,
+        #output th,
+        #output td {
+            border: 1px solid #ddd;
+        }
+
+        #output th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            text-align: center;
+            padding: 8px 6px;
+            color: #495057;
+            white-space: nowrap;
+            font-size: 11px;
+        }
+
+        #output td {
+            padding: 8px 6px;
+            color: #333;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 11px;
+            line-height: 1.3;
+        }
+
+        #output td:first-child {
+            text-align: left;
+            font-weight: 500;
+            background-color: #f8f9fa;
+            white-space: nowrap;
+            min-width: 200px;
+        }
+
+        #output caption {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #333;
+            text-align: center;
+            padding: 10px;
+        }
+
+        #output thead {
+            background-color: #e9ecef;
+        }
+
+        #output tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        #output tbody tr:hover {
+            background-color: #e3f2fd;
+        }
+
+        .example {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+        }
+
+        .example h3 {
+            margin-top: 0;
+            color: #0056b3;
+        }
+
+        .example code {
+            background-color: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-all;
+        }
+
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .debug {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .table-info {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #e7f3ff;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            #output table {
+                font-size: 10px;
+            }
+
+            #output th,
+            #output td {
+                padding: 4px 3px;
+                font-size: 9px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>HTML Multi-Table Renderer</h1>
+
+        <div class="input-section">
+            <label for="tableInput">Paste your HTML tables here (multiple tables supported):</label>
+            <textarea id="tableInput" placeholder="Example: <table>...</table> <table>...</table>"></textarea>
+        </div>
+
+        <div class="button-section">
+            <button id="renderButton" onclick="renderTables()">Render Tables</button>
+        </div>
+
+        <div class="output-section">
+            <label for="output">Rendered Tables:</label>
+            <div id="output">
+                <p style="color: #666; text-align: center; margin: 40px 0;">Your rendered tables will appear here</p>
+            </div>
+        </div>
+
+        <div class="example">
+            <h3>Example HTML Table Code:</h3>
+            <p>Try copying and pasting this example:</p>
+            <code>&lt;table&gt;&lt;caption&gt;Table 1&lt;/caption&gt;&lt;tr&gt;&lt;td&gt;Data 1&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt; &lt;table&gt;&lt;caption&gt;Table 2&lt;/caption&gt;&lt;tr&gt;&lt;td&gt;Data 2&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;</code>
+        </div>
+    </div>
+
+    <script>
+        function renderTables() {
+            const input = document.getElementById('tableInput').value.trim();
+            const output = document.getElementById('output');
+
+            console.log('Rendering tables...', input.substring(0, 100) + '...');
+
+            // Clear previous content
+            output.innerHTML = '';
+
+            if (!input) {
+                output.innerHTML = '<p style="color: #666; text-align: center; margin: 40px 0;">Please enter HTML table code to render</p>';
+                return;
+            }
+
+            try {
+                // Show processing message
+                output.innerHTML = '<p style="color: #007bff; text-align: center; margin: 40px 0;">Processing tables...</p>';
+
+                // Use setTimeout to allow the UI to update
+                setTimeout(() => {
+                    try {
+                        // Create a temporary div to parse the HTML
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = input;
+
+                        // Find all table elements
+                        const tables = tempDiv.querySelectorAll('table');
+
+                        if (tables.length === 0) {
+                            throw new Error('No valid table elements found in the provided HTML');
+                        }
+
+                        // Clear output and add info
+                        output.innerHTML = '';
+
+                        // Add summary info
+                        const infoDiv = document.createElement('div');
+                        infoDiv.className = 'table-info';
+                        infoDiv.innerHTML = `<strong>Found ${tables.length} table(s)</strong>`;
+                        output.appendChild(infoDiv);
+
+                        // Iterate through each table and render it
+                        tables.forEach((table, index) => {
+                            const tableContainer = document.createElement('div');
+                            tableContainer.className = 'rendered-table-container';
+
+                            // Get specific table info
+                            const rows = table.querySelectorAll('tr').length;
+                            const headers = table.querySelectorAll('th').length;
+                            const cells = table.querySelectorAll('td').length;
+
+                            const tableInfo = document.createElement('div');
+                            tableInfo.style.marginBottom = '10px';
+                            tableInfo.style.fontSize = '12px';
+                            tableInfo.style.color = '#666';
+                            tableInfo.innerHTML = `Table ${index + 1}: ${rows} rows, ${headers} headers, ${cells} cells`;
+                            tableContainer.appendChild(tableInfo);
+
+                            tableContainer.appendChild(table);
+                            output.appendChild(tableContainer);
+                        });
+
+                        // Add success message at the top
+                        const successDiv = document.createElement('div');
+                        successDiv.className = 'success';
+                        successDiv.textContent = `Successfully rendered ${tables.length} table(s)! Scroll horizontally if needed.`;
+                        output.insertBefore(successDiv, output.firstChild);
+
+                        console.log(`Successfully rendered ${tables.length} tables`);
+
+                    } catch (error) {
+                        console.error('Error rendering tables:', error);
+                        output.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+
+                        // Add debug info
+                        const debugDiv = document.createElement('div');
+                        debugDiv.className = 'debug';
+                        debugDiv.innerHTML = `
+                            <strong>Debug Info:</strong><br>
+                            Input length: ${input.length} characters<br>
+                            First 200 chars: ${input.substring(0, 200)}...
+                        `;
+                        output.appendChild(debugDiv);
+                    }
+                }, 100);
+
+            } catch (error) {
+                console.error('Outer error:', error);
+                output.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Allow Enter key to render table (Ctrl+Enter or Cmd+Enter)
+        document.getElementById('tableInput').addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                renderTables();
+            }
+        });
+
+        // Load example on page load
+        window.addEventListener('load', function () {
+            const exampleTable = '<table><caption>Fruit Inventory</caption><thead><tr><th>Item</th><th>Price</th><th>Stock</th></tr></thead><tbody><tr><td>Apples</td><td>$1.50</td><td>100</td></tr><tr><td>Bananas</td><td>$0.99</td><td>50</td></tr></tbody></table>\n\n<table><caption>Vegetable Inventory</caption><thead><tr><th>Item</th><th>Price</th><th>Stock</th></tr></thead><tbody><tr><td>Carrots</td><td>$0.50</td><td>200</td></tr><tr><td>Potatoes</td><td>$0.30</td><td>500</td></tr></tbody></table>';
+            document.getElementById('tableInput').value = exampleTable;
+            renderTables();
+        });
+
+        // Add error handling for any uncaught errors
+        window.addEventListener('error', function (e) {
+            console.error('Global error:', e.error);
+            const output = document.getElementById('output');
+            if (output) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.textContent = `Unexpected error: ${e.error.message}`;
+                output.appendChild(errorDiv);
+            }
+        });
+    </script>
+</body>
+
+</html>

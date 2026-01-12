@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Uploader</title>
+    <meta name="description" content="Upload images to Yandex Object Storage with drag-and-drop support">
+    <meta name="category" content="Images">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #183263;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .upload-area {
+            border: 3px dashed #cbd5e0;
+            border-radius: 16px;
+            padding: 60px 40px;
+            text-align: center;
+            background: #f7fafc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .upload-area:hover {
+            border-color: #183263;
+            background: #edf2f7;
+        }
+
+        .upload-area.drag-over {
+            border-color: #183263;
+            background: #e6fffa;
+            border-style: solid;
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.6;
+        }
+
+        .upload-area h2 {
+            font-size: 1.5rem;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .upload-area p {
+            color: #718096;
+            font-size: 1rem;
+            margin-bottom: 20px;
+        }
+
+        .upload-area .formats {
+            font-size: 0.85rem;
+            color: #a0aec0;
+            margin-top: 15px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .record-id-section {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .record-id-section h3 {
+            font-size: 1.1rem;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .record-id-section p {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #183263;
+        }
+
+        .input-group input::placeholder {
+            color: #a0aec0;
+        }
+
+        .clear-btn {
+            padding: 10px 20px;
+            background: #718096;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s ease;
+        }
+
+        .clear-btn:hover {
+            background: #4a5568;
+        }
+
+        .current-path {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #183263;
+        }
+
+        .current-path .path-label {
+            color: #718096;
+            margin-right: 5px;
+        }
+
+        .browse-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #183263;
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin-top: 10px;
+        }
+
+        .browse-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(24, 50, 99, 0.3);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #183263;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .upload-item {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .upload-item.uploading {
+            opacity: 0.7;
+        }
+
+        .upload-item.success {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .upload-item.error {
+            border-color: #f56565;
+            background: #fff5f5;
+        }
+
+        .image-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 2px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+
+        .upload-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .upload-details h4 {
+            font-size: 1rem;
+            color: #2d3748;
+            margin-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .upload-details p {
+            font-size: 0.85rem;
+            color: #718096;
+            margin-bottom: 3px;
+        }
+
+        .upload-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-uploading {
+            background: #fef5e7;
+            color: #d69e2e;
+        }
+
+        .status-success {
+            background: #f0fff4;
+            color: #38a169;
+        }
+
+        .status-error {
+            background: #fed7d7;
+            color: #e53e3e;
+        }
+
+        .url-container {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .url-text {
+            flex: 1;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #183263;
+            word-break: break-all;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .url-text:hover {
+            background: #edf2f7;
+            border-radius: 4px;
+        }
+
+        .copy-btn {
+            padding: 8px 12px;
+            background: #183263;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            transition: background 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .copy-btn:hover {
+            background: #2d4a7a;
+        }
+
+        .copy-btn.copied {
+            background: #38a169;
+        }
+
+        .retry-btn {
+            padding: 6px 12px;
+            background: #183263;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.3s ease;
+        }
+
+        .retry-btn:hover {
+            background: #2d4a7a;
+        }
+
+        .error-message {
+            margin-top: 5px;
+            padding: 8px;
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #c53030;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #183263;
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: indeterminate 1.5s infinite;
+        }
+
+        @keyframes indeterminate {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(400%);
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #a0aec0;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .upload-area {
+                padding: 40px 20px;
+            }
+
+            .upload-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .upload-status {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Image Uploader</h1>
+            <p>Upload images to Yandex Object Storage</p>
+        </div>
+
+        <div class="content">
+            <div class="record-id-section">
+                <h3>Upload Settings</h3>
+                <p>Enter a Record ID to upload to a project folder, or leave empty for OtherImages</p>
+                <div class="input-group">
+                    <input type="text" id="recordIdInput" placeholder="Enter Record ID (optional)">
+                    <button class="clear-btn" onclick="clearRecordId()">Clear</button>
+                </div>
+                <div class="current-path" id="currentPath">
+                    <span class="path-label">Upload path:</span>
+                    <span id="pathDisplay">OtherImages/{filename}</span>
+                </div>
+            </div>
+
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📤</div>
+                <h2>Drag and drop images here</h2>
+                <p>or click to select files</p>
+                <div class="browse-btn">Choose Files</div>
+                <div class="formats">Supported: JPEG, PNG, WebP, GIF (up to 50MB each)</div>
+            </div>
+
+            <input type="file" id="fileInput" accept="image/*" multiple>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalUploads">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="uploadingCount">0</div>
+                    <div class="stat-label">Uploading</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="successCount">0</div>
+                    <div class="stat-label">Success</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="errorCount">0</div>
+                    <div class="stat-label">Errors</div>
+                </div>
+            </div>
+
+            <div class="uploads-section">
+                <div class="section-title">
+                    <span>📋</span>
+                    <span>Uploads</span>
+                </div>
+                <div id="uploadsList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🖼️</div>
+                        <p>No uploaded images yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            CLOUD_FUNCTION_URL: 'https://image-placer-2-305018873985.europe-west1.run.app',
+            DEFAULT_FOLDER: 'OtherImages',
+            MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
+            SUPPORTED_TYPES: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']
+        };
+
+        // Upload statuses
+        const UploadStatus = {
+            UPLOADING: 'uploading',
+            SUCCESS: 'success',
+            ERROR: 'error'
+        };
+
+        // Application state
+        let uploads = [];
+
+        // DOM elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadsList = document.getElementById('uploadsList');
+        const recordIdInput = document.getElementById('recordIdInput');
+        const pathDisplay = document.getElementById('pathDisplay');
+
+        // Get current folder based on record ID
+        function getCurrentFolder() {
+            const recordId = recordIdInput.value.trim();
+            // Remove any trailing slashes and clean up the path
+            const cleanRecordId = recordId.replace(/\/+$/g, '');
+            return cleanRecordId || CONFIG.DEFAULT_FOLDER;
+        }
+
+        // Update path display
+        function updatePathDisplay() {
+            const folder = getCurrentFolder();
+            pathDisplay.textContent = `${folder}/{filename}`;
+        }
+
+        // Clear record ID
+        function clearRecordId() {
+            recordIdInput.value = '';
+            updatePathDisplay();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeUploader();
+        });
+
+        function initializeUploader() {
+            // Update path display on record ID change
+            recordIdInput.addEventListener('input', updatePathDisplay);
+
+            // Initialize path display
+            updatePathDisplay();
+
+            // Click to upload
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // File input change
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(Array.from(e.target.files));
+                fileInput.value = ''; // Reset input
+            });
+
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('drag-over');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+
+                const files = Array.from(e.dataTransfer.files).filter(file =>
+                    file.type.startsWith('image/')
+                );
+
+                if (files.length > 0) {
+                    handleFiles(files);
+                } else {
+                    alert('Please upload images only');
+                }
+            });
+
+            // Prevent default drag behavior on document
+            document.addEventListener('dragover', (e) => e.preventDefault());
+            document.addEventListener('drop', (e) => e.preventDefault());
+        }
+
+        function handleFiles(files) {
+            console.log(`Processing ${files.length} file(s)`);
+
+            // Validate files
+            const validFiles = files.filter(file => {
+                if (!CONFIG.SUPPORTED_TYPES.includes(file.type)) {
+                    alert(`Unsupported file type: ${file.name}`);
+                    return false;
+                }
+
+                if (file.size > CONFIG.MAX_FILE_SIZE) {
+                    alert(`File too large: ${file.name} (max 50MB)`);
+                    return false;
+                }
+
+                return true;
+            });
+
+            if (validFiles.length === 0) {
+                return;
+            }
+
+            // Process each file
+            validFiles.forEach(file => {
+                processFile(file);
+            });
+        }
+
+        async function processFile(file) {
+            const uploadId = generateId();
+
+            // Create upload object
+            const upload = {
+                id: uploadId,
+                file: file,
+                fileName: file.name,
+                fileSize: file.size,
+                fileType: file.type,
+                status: UploadStatus.UPLOADING,
+                url: null,
+                error: null,
+                startTime: Date.now()
+            };
+
+            uploads.unshift(upload); // Add to beginning
+            renderUpload(upload);
+            updateStats();
+
+            try {
+                // Read file as base64
+                console.log(`[${uploadId}] Reading file: ${file.name}`);
+                const base64Data = await readFileAsBase64(file);
+
+                // Generate object key
+                const folder = getCurrentFolder();
+                const extension = getExtensionFromMimeType(file.type);
+                const nanoid = generateNanoId();
+                const objectKey = `${folder}/${nanoid}${extension}`;
+
+                console.log(`[${uploadId}] Uploading to: ${objectKey}`);
+
+                // Upload to cloud function
+                const result = await uploadToCloud(base64Data, objectKey, file.type, uploadId);
+
+                // Update upload object
+                upload.status = UploadStatus.SUCCESS;
+                upload.url = result.url;
+                upload.objectKey = objectKey;
+                upload.uploadTime = Date.now() - upload.startTime;
+
+                console.log(`[${uploadId}] Upload successful: ${result.url}`);
+
+            } catch (error) {
+                console.error(`[${uploadId}] Upload failed:`, error);
+                upload.status = UploadStatus.ERROR;
+                upload.error = error.message;
+            }
+
+            updateUploadDisplay(upload);
+            updateStats();
+        }
+
+        async function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+
+                reader.onload = () => {
+                    // Remove data URL prefix if present
+                    let base64 = reader.result;
+                    if (base64.includes('base64,')) {
+                        base64 = base64.split('base64,')[1];
+                    }
+                    resolve(base64);
+                };
+
+                reader.onerror = () => {
+                    reject(new Error('Failed to read file'));
+                };
+
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function uploadToCloud(base64Data, objectKey, contentType, uploadId) {
+            const payload = {
+                imageData: base64Data,
+                objectKey: objectKey,
+                contentType: contentType
+            };
+
+            console.log(`[${uploadId}] Sending request to cloud function...`);
+
+            try {
+                const response = await fetch(CONFIG.CLOUD_FUNCTION_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+                }
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || 'Upload failed');
+                }
+
+                return result;
+            } catch (error) {
+                // Better error messages for common issues
+                if (error.message.includes('Failed to fetch')) {
+                    throw new Error('CORS error: Cloud function not configured for browser access. Check function CORS settings.');
+                }
+                throw error;
+            }
+        }
+
+        function renderUpload(upload) {
+            // Remove empty state if present
+            const emptyState = uploadsList.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const uploadDiv = document.createElement('div');
+            uploadDiv.className = 'upload-item fade-in uploading';
+            uploadDiv.id = `upload-${upload.id}`;
+
+            // Create image preview
+            const preview = document.createElement('img');
+            preview.className = 'image-preview';
+            preview.src = URL.createObjectURL(upload.file);
+            preview.alt = upload.fileName;
+
+            const detailsDiv = document.createElement('div');
+            detailsDiv.className = 'upload-details';
+
+            detailsDiv.innerHTML = `
+                <h4>${upload.fileName}</h4>
+                <p>Size: ${formatFileSize(upload.fileSize)} • Type: ${upload.fileType.split('/')[1].toUpperCase()}</p>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+            `;
+
+            const statusDiv = document.createElement('div');
+            statusDiv.className = 'upload-status';
+            statusDiv.innerHTML = `
+                <span class="status-badge status-uploading">Uploading...</span>
+            `;
+
+            uploadDiv.appendChild(preview);
+            uploadDiv.appendChild(detailsDiv);
+            uploadDiv.appendChild(statusDiv);
+
+            uploadsList.insertBefore(uploadDiv, uploadsList.firstChild);
+        }
+
+        function updateUploadDisplay(upload) {
+            const uploadDiv = document.getElementById(`upload-${upload.id}`);
+            if (!uploadDiv) return;
+
+            // Update main status class
+            uploadDiv.classList.remove('uploading', 'success', 'error');
+            uploadDiv.classList.add(upload.status);
+
+            const statusDiv = uploadDiv.querySelector('.upload-status');
+            const detailsDiv = uploadDiv.querySelector('.upload-details');
+
+            if (upload.status === UploadStatus.SUCCESS) {
+                // Remove progress bar
+                const progressBar = detailsDiv.querySelector('.progress-bar');
+                if (progressBar) {
+                    progressBar.remove();
+                }
+
+                // Add upload time info
+                const uploadInfo = document.createElement('p');
+                uploadInfo.textContent = `Uploaded in ${(upload.uploadTime / 1000).toFixed(1)}s`;
+                detailsDiv.appendChild(uploadInfo);
+
+                // Update status
+                statusDiv.innerHTML = `
+                    <span class="status-badge status-success">✓ Done</span>
+                `;
+
+                // Add URL container
+                const urlContainer = document.createElement('div');
+                urlContainer.className = 'url-container';
+                urlContainer.innerHTML = `
+                    <div class="url-text" onclick="copyToClipboard('${upload.url}', '${upload.id}')" title="Click to copy">${upload.url}</div>
+                    <button class="copy-btn" onclick="copyToClipboard('${upload.url}', '${upload.id}')" id="copy-btn-${upload.id}">📋 Copy</button>
+                `;
+                detailsDiv.appendChild(urlContainer);
+
+            } else if (upload.status === UploadStatus.ERROR) {
+                // Remove progress bar
+                const progressBar = detailsDiv.querySelector('.progress-bar');
+                if (progressBar) {
+                    progressBar.remove();
+                }
+
+                // Update status with retry button
+                statusDiv.innerHTML = `
+                    <span class="status-badge status-error">✗ Error</span>
+                    <button class="retry-btn" onclick="retryUpload('${upload.id}')">🔄 Retry</button>
+                `;
+
+                // Add error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = upload.error;
+                detailsDiv.appendChild(errorDiv);
+            }
+        }
+
+        function copyToClipboard(text, uploadId) {
+            navigator.clipboard.writeText(text).then(() => {
+                console.log('URL copied to clipboard:', text);
+
+                // Visual feedback
+                const copyBtn = document.getElementById(`copy-btn-${uploadId}`);
+                if (copyBtn) {
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = '✓ Copied';
+                    copyBtn.classList.add('copied');
+
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                        copyBtn.classList.remove('copied');
+                    }, 2000);
+                }
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy URL');
+            });
+        }
+
+        function retryUpload(uploadId) {
+            const upload = uploads.find(u => u.id === uploadId);
+            if (!upload) return;
+
+            console.log(`Retrying upload: ${upload.fileName}`);
+
+            // Remove old upload element
+            const uploadDiv = document.getElementById(`upload-${uploadId}`);
+            if (uploadDiv) {
+                uploadDiv.remove();
+            }
+
+            // Remove from uploads array
+            uploads = uploads.filter(u => u.id !== uploadId);
+
+            // Process file again
+            processFile(upload.file);
+        }
+
+        function updateStats() {
+            const total = uploads.length;
+            const uploading = uploads.filter(u => u.status === UploadStatus.UPLOADING).length;
+            const success = uploads.filter(u => u.status === UploadStatus.SUCCESS).length;
+            const error = uploads.filter(u => u.status === UploadStatus.ERROR).length;
+
+            document.getElementById('totalUploads').textContent = total;
+            document.getElementById('uploadingCount').textContent = uploading;
+            document.getElementById('successCount').textContent = success;
+            document.getElementById('errorCount').textContent = error;
+        }
+
+        function getExtensionFromMimeType(mimeType) {
+            const map = {
+                'image/jpeg': '.jpg',
+                'image/png': '.png',
+                'image/webp': '.webp',
+                'image/gif': '.gif',
+                'image/svg+xml': '.svg'
+            };
+            return map[mimeType] || '.jpg';
+        }
+
+        function generateNanoId(length = 10) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let id = '';
+            for (let i = 0; i < length; i++) {
+                id += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return id;
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        console.log('🚀 Image Uploader initialized');
+        console.log('📊 Configuration:', CONFIG);
+    </script>
+</body>
+</html>

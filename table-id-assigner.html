@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Table ID Assigner</title>
+  <meta name="description" content="Assign sequential IDs to HTML tables and replace placeholders with original content">
+  <meta name="category" content="Text">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 24px;
+    }
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+    }
+    .tab {
+      padding: 10px 20px;
+      background: #e9ecef;
+      border: none;
+      border-radius: 6px 6px 0 0;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: white;
+      color: #007aff;
+    }
+    .tab:hover:not(.active) {
+      background: #dee2e6;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .panel {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .panel-title {
+      font-weight: 600;
+      color: #333;
+    }
+    .stats {
+      font-size: 13px;
+      color: #666;
+    }
+    textarea {
+      width: 100%;
+      height: 400px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      resize: vertical;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #007aff;
+    }
+    .output-area {
+      background: #f8f9fa;
+    }
+    .buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #007aff;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #0056b3;
+    }
+    .btn-secondary {
+      background: #e9ecef;
+      color: #333;
+    }
+    .btn-secondary:hover {
+      background: #dee2e6;
+    }
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+    .btn-success:hover {
+      background: #218838;
+    }
+    .btn-purple {
+      background: #6f42c1;
+      color: white;
+    }
+    .btn-purple:hover {
+      background: #5a32a3;
+    }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #333;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .toast.show {
+      opacity: 1;
+    }
+    .table-map {
+      margin-top: 16px;
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .table-map-title {
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .table-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .table-id {
+      font-weight: 600;
+      color: #007aff;
+    }
+    .table-size {
+      color: #666;
+    }
+    .placeholder-hint {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #fff3cd;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #856404;
+    }
+    .warning {
+      color: #dc3545;
+      font-weight: 500;
+    }
+    .success-text {
+      color: #28a745;
+    }
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Table Processor</h1>
+  <p class="subtitle">Assign IDs to tables or replace placeholders with table content</p>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('assign')">1. Assign IDs</button>
+    <button class="tab" onclick="switchTab('replace')">2. Replace Placeholders</button>
+  </div>
+
+  <!-- Tab 1: Assign IDs -->
+  <div id="tab-assign" class="tab-content active">
+    <div class="container">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Input (TableDatabase)</span>
+          <span class="stats" id="inputStats">0 characters</span>
+        </div>
+        <textarea id="input" placeholder="Paste your TableDatabase HTML here..."></textarea>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Output (with IDs)</span>
+          <span class="stats" id="outputStats">0 tables found</span>
+        </div>
+        <textarea id="output" class="output-area" readonly placeholder="Processed output will appear here..."></textarea>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button class="btn-primary" onclick="processInput()">Assign IDs</button>
+      <button class="btn-secondary" onclick="clearAssign()">Clear</button>
+      <button class="btn-success" onclick="copyOutput()">Copy Output</button>
+    </div>
+
+    <div id="tableMap" class="table-map" style="display: none;">
+      <div class="table-map-title">Table Map (stored for replacement)</div>
+      <div id="tableMapContent"></div>
+      <div class="placeholder-hint">
+        Use <code>{{TABLE_1}}</code>, <code>{{TABLE_2}}</code>, etc. as placeholders in the translation
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Replace Placeholders -->
+  <div id="tab-replace" class="tab-content">
+    <div class="container">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Text with Placeholders</span>
+          <span class="stats" id="replaceInputStats">0 characters</span>
+        </div>
+        <textarea id="replaceInput" placeholder="Paste translated text with {{TABLE_1}}, {{TABLE_2}}, etc. placeholders..."></textarea>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Output (tables restored)</span>
+          <span class="stats" id="replaceOutputStats">0 replacements</span>
+        </div>
+        <textarea id="replaceOutput" class="output-area" readonly placeholder="Text with tables restored will appear here..."></textarea>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button class="btn-purple" onclick="replacePlaceholders()">Replace Placeholders</button>
+      <button class="btn-secondary" onclick="clearReplace()">Clear</button>
+      <button class="btn-success" onclick="copyReplaceOutput()">Copy Output</button>
+    </div>
+
+    <div id="replaceStatus" class="table-map" style="display: none;">
+      <div class="table-map-title">Replacement Status</div>
+      <div id="replaceStatusContent"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // Tab 1 elements
+    const inputEl = document.getElementById('input');
+    const outputEl = document.getElementById('output');
+    const inputStatsEl = document.getElementById('inputStats');
+    const outputStatsEl = document.getElementById('outputStats');
+    const tableMapEl = document.getElementById('tableMap');
+    const tableMapContentEl = document.getElementById('tableMapContent');
+
+    // Tab 2 elements
+    const replaceInputEl = document.getElementById('replaceInput');
+    const replaceOutputEl = document.getElementById('replaceOutput');
+    const replaceInputStatsEl = document.getElementById('replaceInputStats');
+    const replaceOutputStatsEl = document.getElementById('replaceOutputStats');
+    const replaceStatusEl = document.getElementById('replaceStatus');
+    const replaceStatusContentEl = document.getElementById('replaceStatusContent');
+
+    const toastEl = document.getElementById('toast');
+
+    // Stored table map (persists between tabs)
+    let storedTableMap = new Map();
+
+    // Tab switching
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    // Update input stats on typing
+    inputEl.addEventListener('input', () => {
+      inputStatsEl.textContent = `${inputEl.value.length.toLocaleString()} characters`;
+    });
+
+    replaceInputEl.addEventListener('input', () => {
+      replaceInputStatsEl.textContent = `${replaceInputEl.value.length.toLocaleString()} characters`;
+    });
+
+    // Tab 1: Assign IDs
+    function processInput() {
+      const tableDatabase = inputEl.value;
+
+      if (!tableDatabase.trim()) {
+        showToast('Please enter some content');
+        return;
+      }
+
+      if (!tableDatabase.includes('<table')) {
+        outputEl.value = tableDatabase;
+        outputStatsEl.textContent = '0 tables found';
+        tableMapEl.style.display = 'none';
+        storedTableMap = new Map();
+        showToast('No tables found in input');
+        return;
+      }
+
+      const tableMap = new Map();
+      let tableCounter = 0;
+
+      const processedTableDatabase = tableDatabase.replace(/<table(?!\s+id=)/gi, (match, offset) => {
+        tableCounter++;
+        const tableId = tableCounter.toString();
+        const startIndex = offset;
+        const endTag = '</table>';
+        const endIndex = tableDatabase.indexOf(endTag, startIndex);
+
+        if (endIndex === -1) {
+          return match;
+        }
+
+        const fullTable = tableDatabase.substring(startIndex, endIndex + endTag.length);
+        tableMap.set(tableId, fullTable);
+        return `<table id="${tableId}"`;
+      });
+
+      // Store for use in Tab 2
+      storedTableMap = tableMap;
+
+      outputEl.value = processedTableDatabase;
+      outputStatsEl.textContent = `${tableMap.size} table${tableMap.size !== 1 ? 's' : ''} found`;
+
+      // Display table map
+      if (tableMap.size > 0) {
+        tableMapContentEl.innerHTML = '';
+        for (const [id, content] of tableMap) {
+          const div = document.createElement('div');
+          div.className = 'table-item';
+          div.innerHTML = `
+            <span><span class="table-id">Table ${id}</span> &rarr; <code>{{TABLE_${id}}}</code></span>
+            <span class="table-size">${content.length.toLocaleString()} chars</span>
+          `;
+          tableMapContentEl.appendChild(div);
+        }
+        tableMapEl.style.display = 'block';
+      } else {
+        tableMapEl.style.display = 'none';
+      }
+
+      showToast(`Processed ${tableMap.size} table${tableMap.size !== 1 ? 's' : ''}`);
+    }
+
+    // Tab 2: Replace Placeholders
+    function replacePlaceholders() {
+      const text = replaceInputEl.value;
+
+      if (!text.trim()) {
+        showToast('Please enter some text');
+        return;
+      }
+
+      if (storedTableMap.size === 0) {
+        showToast('No table map! Run "Assign IDs" first');
+        return;
+      }
+
+      const placeholderRegex = /\{\{TABLE_(\d+)\}\}/g;
+      const foundPlaceholders = new Set();
+      const invalidPlaceholders = [];
+      let replacementCount = 0;
+
+      const processedText = text.replace(placeholderRegex, (match, tableId) => {
+        foundPlaceholders.add(tableId);
+        if (storedTableMap.has(tableId)) {
+          replacementCount++;
+          return storedTableMap.get(tableId);
+        } else {
+          invalidPlaceholders.push(tableId);
+          return match;
+        }
+      });
+
+      // Check for unreferenced tables
+      const unreferencedTables = [...storedTableMap.keys()].filter(id => !foundPlaceholders.has(id));
+
+      replaceOutputEl.value = processedText;
+      replaceOutputStatsEl.textContent = `${replacementCount} replacement${replacementCount !== 1 ? 's' : ''}`;
+
+      // Show status
+      replaceStatusContentEl.innerHTML = '';
+
+      // Successful replacements
+      if (replacementCount > 0) {
+        const successDiv = document.createElement('div');
+        successDiv.className = 'table-item';
+        successDiv.innerHTML = `<span class="success-text">✓ ${replacementCount} placeholder${replacementCount !== 1 ? 's' : ''} replaced successfully</span>`;
+        replaceStatusContentEl.appendChild(successDiv);
+      }
+
+      // Invalid placeholders
+      if (invalidPlaceholders.length > 0) {
+        const warnDiv = document.createElement('div');
+        warnDiv.className = 'table-item';
+        warnDiv.innerHTML = `<span class="warning">⚠ Invalid placeholders (not in map): ${invalidPlaceholders.map(id => `{{TABLE_${id}}}`).join(', ')}</span>`;
+        replaceStatusContentEl.appendChild(warnDiv);
+      }
+
+      // Unreferenced tables
+      if (unreferencedTables.length > 0) {
+        const warnDiv = document.createElement('div');
+        warnDiv.className = 'table-item';
+        warnDiv.innerHTML = `<span class="warning">⚠ Tables not used: ${unreferencedTables.map(id => `Table ${id}`).join(', ')}</span>`;
+        replaceStatusContentEl.appendChild(warnDiv);
+      }
+
+      replaceStatusEl.style.display = 'block';
+      showToast(`Replaced ${replacementCount} placeholder${replacementCount !== 1 ? 's' : ''}`);
+    }
+
+    function clearAssign() {
+      inputEl.value = '';
+      outputEl.value = '';
+      inputStatsEl.textContent = '0 characters';
+      outputStatsEl.textContent = '0 tables found';
+      tableMapEl.style.display = 'none';
+      storedTableMap = new Map();
+      showToast('Cleared');
+    }
+
+    function clearReplace() {
+      replaceInputEl.value = '';
+      replaceOutputEl.value = '';
+      replaceInputStatsEl.textContent = '0 characters';
+      replaceOutputStatsEl.textContent = '0 replacements';
+      replaceStatusEl.style.display = 'none';
+      showToast('Cleared');
+    }
+
+    function copyOutput() {
+      if (!outputEl.value) {
+        showToast('Nothing to copy');
+        return;
+      }
+      navigator.clipboard.writeText(outputEl.value).then(() => {
+        showToast('Copied to clipboard!');
+      }).catch(() => {
+        showToast('Failed to copy');
+      });
+    }
+
+    function copyReplaceOutput() {
+      if (!replaceOutputEl.value) {
+        showToast('Nothing to copy');
+        return;
+      }
+      navigator.clipboard.writeText(replaceOutputEl.value).then(() => {
+        showToast('Copied to clipboard!');
+      }).catch(() => {
+        showToast('Failed to copy');
+      });
+    }
+
+    function showToast(message) {
+      toastEl.textContent = message;
+      toastEl.classList.add('show');
+      setTimeout(() => {
+        toastEl.classList.remove('show');
+      }, 2000);
+    }
+  </script>
+</body>
+</html>

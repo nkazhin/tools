@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podscan Fetcher</title>
+    <meta name="description" content="Fetch podcast episodes and transcripts from Podscan API">
+    <meta name="category" content="Data">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --border: #334155;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --font-sans: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .badge {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Card */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        /* Config Section */
+        .config-section {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex: 1;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            background: var(--bg-body);
+            padding: 0.25rem;
+            border-radius: 0.75rem;
+            width: fit-content;
+            border: 1px solid var(--border);
+        }
+
+        .tab {
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 0 2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .options {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 1rem;
+            height: 1rem;
+        }
+
+        /* Results */
+        .results-container {
+            display: none;
+            /* Hidden by default */
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .results-container.active {
+            display: flex;
+        }
+
+        .meta-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 2rem;
+        }
+
+        .meta-title h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+
+        .meta-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .meta-tags {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            background: var(--bg-body);
+            border: 1px solid var(--border);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .info-block h3 {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .info-block p {
+            font-size: 0.95rem;
+        }
+
+        .cover-image {
+            width: 100%;
+            border-radius: 0.75rem;
+            aspect-ratio: 1;
+            object-fit: cover;
+            background: var(--bg-body);
+        }
+
+        .transcript-box {
+            background: var(--bg-body);
+            /* Slightly darker for contrast against card */
+            padding: 2rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            max-height: 800px;
+            overflow-y: auto;
+            font-size: 1.125rem;
+            /* Larger for reading */
+            line-height: 1.8;
+            color: #e2e8f0;
+        }
+
+        .transcript-box p {
+            margin-bottom: 1.5rem;
+        }
+
+        .json-toggle {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            margin-top: 1rem;
+            width: fit-content;
+        }
+
+        .json-view {
+            display: none;
+            background: #000;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 0.875rem;
+            color: #22c55e;
+            margin-top: 1rem;
+        }
+
+        .json-view.active {
+            display: block;
+        }
+
+        .error-msg {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            display: none;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-body);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Podscan <span style="color: var(--text-secondary); font-weight: 400;">Fetcher</span></h1>
+            <span class="badge">v1.0</span>
+        </header>
+
+        <!-- Config -->
+        <div class="card config-section">
+            <div id="keyInputContainer" class="input-group"
+                style="display: flex; flex-direction: row; gap: 1rem; align-items: center; width: 100%;">
+                <div style="flex: 1;">
+                    <label for="apiKey">Podscan API Key</label>
+                    <input type="password" id="apiKey" placeholder="Enter your Bearer token" style="width: 100%;">
+                </div>
+                <button id="saveKeyBtn" class="btn"
+                    style="width: auto; padding: 0.75rem 1.5rem; height: fit-content; align-self: flex-end;">Save</button>
+            </div>
+
+            <div id="keySavedContainer"
+                style="display: none; align-items: center; justify-content: space-between; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--success);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <span style="font-weight: 500;">API Key Saved</span>
+                </div>
+                <button id="changeKeyBtn" class="btn"
+                    style="background: var(--bg-card-hover); color: var(--text-primary); width: auto; padding: 0.5rem 1rem; font-size: 0.875rem;">Change
+                    Key</button>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="card controls">
+            <div class="tabs">
+                <div class="tab active" data-mode="episode">Fetch Episode</div>
+                <div class="tab" data-mode="podcast">Fetch Podcast</div>
+            </div>
+
+            <div class="search-box">
+                <div class="input-group">
+                    <input type="text" id="resourceId" placeholder="Enter Episode ID (e.g. 12345)">
+                </div>
+                <button id="fetchBtn" class="btn">Fetch Data</button>
+            </div>
+
+            <div class="options">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="optParagraph" checked>
+                    Paragraph Formatter
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="optTimestamps">
+                    Word Level Timestamps
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="optRemoveTimestamps">
+                    Remove Timestamps
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="optFullPodcast">
+                    Show Full Podcast Info
+                </label>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <div id="errorDisplay" class="error-msg"></div>
+
+        <!-- Results -->
+        <div id="resultsArea" class="results-container">
+
+            <!-- Episode View -->
+            <div id="episodeView" class="card" style="display: none;">
+                <div class="meta-header">
+                    <div class="meta-title">
+                        <h2 id="epTitle">Episode Title</h2>
+                        <div class="meta-subtitle" id="epShowName">Podcast Name</div>
+                        <div class="meta-tags" id="epTags">
+                            <!-- Tags injected here -->
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.875rem; color: var(--text-secondary);" id="epDate">Oct 24, 2024</div>
+                        <div style="font-weight: 600; color: var(--accent);" id="epDuration">45 min</div>
+                    </div>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0;">
+
+                <div class="grid-layout">
+                    <div class="sidebar">
+                        <img id="epImage" src="" alt="Cover" class="cover-image">
+
+                        <div class="info-block">
+                            <h3>Audio</h3>
+                            <audio id="epAudio" controls style="width: 100%;"></audio>
+                        </div>
+
+                        <div class="info-block">
+                            <h3>Description</h3>
+                            <p id="epDescription" style="font-size: 0.875rem; color: var(--text-secondary);">
+                                No description available.
+                            </p>
+                        </div>
+
+                        <div class="info-block">
+                            <h3>Links</h3>
+                            <a id="epLink" href="#" target="_blank"
+                                style="color: var(--accent); text-decoration: none;">View Original</a>
+                        </div>
+                    </div>
+
+                    <div class="main-content">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3>Transcript</h3>
+                            <button class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.75rem;"
+                                onclick="copyTranscript()">Copy Text</button>
+                        </div>
+                        <div id="epTranscript" class="transcript-box">
+                            <!-- Transcript content -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Podcast View -->
+            <div id="podcastView" class="card" style="display: none;">
+                <div class="grid-layout">
+                    <div class="sidebar">
+                        <img id="podImage" src="" alt="Cover" class="cover-image">
+                        <div class="info-block">
+                            <h3>Publisher</h3>
+                            <p id="podPublisher">Publisher Name</p>
+                        </div>
+                        <div class="info-block">
+                            <h3>Stats</h3>
+                            <p>Episodes: <span id="podEpCount" style="color: var(--text-primary);">0</span></p>
+                            <p>Score: <span id="podScore" style="color: var(--text-primary);">N/A</span></p>
+                        </div>
+                    </div>
+                    <div class="main-content">
+                        <h2 id="podTitle" style="font-size: 2rem; margin-bottom: 1rem;">Podcast Title</h2>
+                        <p id="podDescription" style="color: var(--text-secondary); font-size: 1.1rem;">
+                            Podcast description goes here.
+                        </p>
+                        <div class="meta-tags" id="podTags" style="margin-top: 1.5rem;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- JSON Debug -->
+            <div>
+                <button class="json-toggle" onclick="toggleJson()">Toggle Raw JSON</button>
+                <pre id="jsonOutput" class="json-view"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Storage keys
+        const STORAGE_KEYS = {
+            API_KEY: 'podscan_api_key'
+        };
+
+        // State
+        const state = {
+            mode: 'episode', // 'episode' or 'podcast'
+            apiKey: localStorage.getItem(STORAGE_KEYS.API_KEY) || '',
+            data: null
+        };
+
+        // Elements
+        const els = {
+            apiKey: document.getElementById('apiKey'),
+            saveKeyBtn: document.getElementById('saveKeyBtn'),
+            keyInputContainer: document.getElementById('keyInputContainer'),
+            keySavedContainer: document.getElementById('keySavedContainer'),
+            changeKeyBtn: document.getElementById('changeKeyBtn'),
+            tabs: document.querySelectorAll('.tab'),
+            resourceId: document.getElementById('resourceId'),
+            fetchBtn: document.getElementById('fetchBtn'),
+            optParagraph: document.getElementById('optParagraph'),
+            optTimestamps: document.getElementById('optTimestamps'),
+            optRemoveTimestamps: document.getElementById('optRemoveTimestamps'),
+            optFullPodcast: document.getElementById('optFullPodcast'),
+            errorDisplay: document.getElementById('errorDisplay'),
+            resultsArea: document.getElementById('resultsArea'),
+            episodeView: document.getElementById('episodeView'),
+            podcastView: document.getElementById('podcastView'),
+            jsonOutput: document.getElementById('jsonOutput'),
+            // Episode Els
+            epTitle: document.getElementById('epTitle'),
+            epShowName: document.getElementById('epShowName'),
+            epDate: document.getElementById('epDate'),
+            epDuration: document.getElementById('epDuration'),
+            epTags: document.getElementById('epTags'),
+            epImage: document.getElementById('epImage'),
+            epAudio: document.getElementById('epAudio'),
+            epDescription: document.getElementById('epDescription'),
+            epLink: document.getElementById('epLink'),
+            epTranscript: document.getElementById('epTranscript'),
+            // Podcast Els
+            podTitle: document.getElementById('podTitle'),
+            podImage: document.getElementById('podImage'),
+            podPublisher: document.getElementById('podPublisher'),
+            podEpCount: document.getElementById('podEpCount'),
+            podScore: document.getElementById('podScore'),
+            podDescription: document.getElementById('podDescription'),
+            podTags: document.getElementById('podTags')
+        };
+
+        // Init
+        if (state.apiKey) {
+            els.apiKey.value = state.apiKey;
+            showKeySavedState(true);
+        } else {
+            showKeySavedState(false);
+        }
+
+        // Event Listeners
+        els.saveKeyBtn.addEventListener('click', () => {
+            const key = els.apiKey.value.trim();
+            if (key) {
+                localStorage.setItem(STORAGE_KEYS.API_KEY, key);
+                state.apiKey = key;
+                showKeySavedState(true);
+            }
+        });
+
+        els.changeKeyBtn.addEventListener('click', () => {
+            showKeySavedState(false);
+            els.apiKey.focus();
+        });
+
+        function showKeySavedState(isSaved) {
+            if (isSaved) {
+                els.keyInputContainer.style.display = 'none';
+                els.keySavedContainer.style.display = 'flex';
+            } else {
+                els.keyInputContainer.style.display = 'flex';
+                els.keySavedContainer.style.display = 'none';
+            }
+        }
+
+        els.tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                els.tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                state.mode = tab.dataset.mode;
+
+                // Update placeholder
+                els.resourceId.placeholder = state.mode === 'episode'
+                    ? 'Enter Episode ID (e.g. 12345)'
+                    : 'Enter Podcast ID (e.g. 12345)';
+
+                // Toggle options visibility
+                document.querySelector('.options').style.display = state.mode === 'episode' ? 'flex' : 'none';
+            });
+        });
+
+        els.fetchBtn.addEventListener('click', fetchData);
+
+        // Functions
+        async function fetchData() {
+            const id = els.resourceId.value.trim();
+            if (!id) {
+                showError('Please enter an ID');
+                return;
+            }
+            if (!state.apiKey) {
+                showError('Please enter and save your API Key first');
+                return;
+            }
+
+            showError(null); // Clear errors
+            setLoading(true);
+
+            const baseUrl = 'https://podscan.fm/api/v1';
+
+            let url = '';
+            const params = new URLSearchParams();
+
+            if (state.mode === 'episode') {
+                url = `${baseUrl}/episodes/${id}`;
+                if (els.optParagraph.checked) params.append('transcript_formatter', 'paragraph');
+                if (els.optTimestamps.checked) params.append('word_level_timestamps', 'true');
+                if (els.optRemoveTimestamps.checked) params.append('remove_timestamps', 'true');
+                if (els.optFullPodcast.checked) params.append('show_full_podcast', 'true');
+            } else {
+                url = `${baseUrl}/podcasts/${id}`;
+            }
+
+            const fullUrl = `${url}?${params.toString()}`;
+
+            try {
+                const res = await fetch(fullUrl, {
+                    headers: {
+                        'Authorization': `Bearer ${state.apiKey}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!res.ok) {
+                    if (res.status === 401) throw new Error('Unauthorized: Check your API Key');
+                    if (res.status === 404) throw new Error('Resource not found');
+                    if (res.status === 429) throw new Error('Rate limit exceeded');
+                    throw new Error(`API Error: ${res.status}`);
+                }
+
+                const data = await res.json();
+                state.data = data;
+                renderData(data);
+
+            } catch (err) {
+                showError(err.message);
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function renderData(data) {
+            els.resultsArea.classList.add('active');
+            els.jsonOutput.textContent = JSON.stringify(data, null, 2);
+
+            if (state.mode === 'episode') {
+                renderEpisode(data);
+            } else {
+                renderPodcast(data);
+            }
+        }
+
+        function renderEpisode(data) {
+            els.episodeView.style.display = 'block';
+            els.podcastView.style.display = 'none';
+
+            // Handle nested 'episode' object if present (common in some API responses)
+            const ep = data.episode || data;
+
+            els.epTitle.textContent = ep.episode_title || 'Untitled Episode';
+            els.epShowName.textContent = ep.podcast?.podcast_name || 'Unknown Podcast';
+
+            // Date
+            if (ep.posted_at) {
+                const val = ep.posted_at;
+                // Check if numeric (timestamp in seconds)
+                if (!isNaN(val) && !isNaN(parseFloat(val))) {
+                    els.epDate.textContent = new Date(val * 1000).toLocaleDateString();
+                } else {
+                    // ISO string
+                    els.epDate.textContent = new Date(val).toLocaleDateString();
+                }
+            } else if (ep.created_at) {
+                els.epDate.textContent = new Date(ep.created_at).toLocaleDateString();
+            } else {
+                els.epDate.textContent = 'Unknown Date';
+            }
+
+            // Duration
+            const dur = ep.episode_duration || 0;
+            els.epDuration.textContent = `${Math.floor(dur / 60)} min`;
+
+            // Image
+            els.epImage.src = ep.episode_image_url || ep.podcast?.podcast_image_url || '';
+
+            // Audio
+            els.epAudio.src = ep.episode_audio_url || '';
+
+            // Description
+            els.epDescription.innerHTML = ep.episode_description || 'No description.';
+
+            // Link
+            els.epLink.href = ep.episode_url || '#';
+
+            // Transcript
+            if (ep.episode_transcript) {
+                // If paragraph formatter was used, it might come as plain text with newlines
+                // We can wrap lines in <p> tags for better display
+                const text = ep.episode_transcript;
+                // Check if it looks like paragraphs (double newlines)
+                const paragraphs = text.split(/\n\s*\n/);
+                els.epTranscript.innerHTML = paragraphs.map(p => `<p>${p}</p>`).join('');
+            } else {
+                els.epTranscript.innerHTML = '<p style="color: var(--text-secondary); font-style: italic;">No transcript available.</p>';
+            }
+
+            // Tags
+            els.epTags.innerHTML = '';
+            if (ep.episode_categories) {
+                // Can be object or array depending on API version
+                const cats = Array.isArray(ep.episode_categories) ? ep.episode_categories : Object.values(ep.episode_categories);
+                cats.forEach(cat => {
+                    const span = document.createElement('span');
+                    span.className = 'tag';
+                    span.textContent = typeof cat === 'string' ? cat : cat.category_name;
+                    els.epTags.appendChild(span);
+                });
+            }
+        }
+
+        function renderPodcast(data) {
+            els.episodeView.style.display = 'none';
+            els.podcastView.style.display = 'block';
+
+            const pod = data.podcast || data;
+
+            els.podTitle.textContent = pod.podcast_name || 'Untitled Podcast';
+            els.podPublisher.textContent = pod.publisher_name || 'Unknown Publisher';
+            els.podDescription.innerHTML = pod.podcast_description || 'No description.';
+            els.podImage.src = pod.podcast_image_url || '';
+
+            els.podEpCount.textContent = pod.episode_count || 0;
+
+            // Reach/Score
+            if (pod.reach && pod.reach.audience_size) {
+                els.podScore.textContent = `${pod.reach.audience_size.toLocaleString()} listeners`;
+            } else {
+                els.podScore.textContent = 'N/A';
+            }
+
+            // Tags
+            els.podTags.innerHTML = '';
+            if (pod.podcast_categories) {
+                const cats = Array.isArray(pod.podcast_categories) ? pod.podcast_categories : Object.values(pod.podcast_categories);
+                cats.forEach(cat => {
+                    const span = document.createElement('span');
+                    span.className = 'tag';
+                    span.textContent = typeof cat === 'string' ? cat : cat.category_name;
+                    els.podTags.appendChild(span);
+                });
+            }
+        }
+
+        function showError(msg) {
+            if (msg) {
+                els.errorDisplay.textContent = msg;
+                els.errorDisplay.style.display = 'block';
+            } else {
+                els.errorDisplay.style.display = 'none';
+            }
+        }
+
+        function setLoading(isLoading) {
+            els.fetchBtn.disabled = isLoading;
+            els.fetchBtn.textContent = isLoading ? 'Fetching...' : 'Fetch Data';
+            if (isLoading) {
+                els.resultsArea.classList.remove('active');
+            }
+        }
+
+        function toggleJson() {
+            els.jsonOutput.classList.toggle('active');
+        }
+
+        function copyTranscript() {
+            const text = els.epTranscript.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Transcript copied to clipboard!');
+            });
+        }
+
+    </script>
+</body>
+
+</html>
