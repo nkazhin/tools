@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Diff Tool</title>
+    <meta name="description" content="Compare two texts and visualize differences with word or character level precision">
+    <meta name="category" content="Text">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9fafb;
+            color: #1f2937;
+            line-height: 1.5;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0 0 8px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin: 0 0 24px;
+            text-align: center;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 140px;
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            background: #667eea;
+            color: white;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: #f3f4f6;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .mode-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .stat-value.added { color: #059669; }
+        .stat-value.deleted { color: #dc2626; }
+        .stat-value.unchanged { color: #6b7280; }
+
+        .stat-label {
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .stat-label.added { color: #065f46; }
+        .stat-label.deleted { color: #991b1b; }
+        .stat-label.unchanged { color: #4b5563; }
+
+        .diff-section {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .diff-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .diff-content {
+            font-family: 'SF Mono', Monaco, 'Inconsolata', 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .added {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        .deleted {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        .legend {
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .legend-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 13px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .hidden { display: none; }
+        .mt-16 { margin-top: 16px; }
+        .flex { display: flex; gap: 8px; align-items: center; }
+    </style>
+</head>
+<body>
+    <h1>Text Diff Tool</h1>
+    <p class="subtitle">Compare two texts and visualize their differences</p>
+
+    <div class="mode-toggle">
+        <span class="mode-label">Comparison mode:</span>
+        <button class="btn active" id="wordBtn" onclick="setMode(true)">Word by word</button>
+        <button class="btn btn-secondary" id="charBtn" onclick="setMode(false)">Character by character</button>
+    </div>
+
+    <div class="card">
+        <div class="grid-2">
+            <div>
+                <label class="label" for="text1">Text 1 (Original)</label>
+                <textarea class="textarea" id="text1" placeholder="Enter your first text here..." oninput="compare()"></textarea>
+            </div>
+            <div>
+                <label class="label" for="text2">Text 2 (Comparison)</label>
+                <textarea class="textarea" id="text2" placeholder="Enter your second text here..." oninput="compare()"></textarea>
+            </div>
+        </div>
+
+        <div class="flex mt-16">
+            <button class="btn" onclick="compare()">Compare</button>
+            <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+            <button class="btn btn-secondary" onclick="swapTexts()">Swap</button>
+        </div>
+    </div>
+
+    <div class="card" id="statsCard" style="display: none;">
+        <div class="stats-grid">
+            <div>
+                <div class="stat-value added" id="addedCount">0</div>
+                <div class="stat-label added" id="addedLabel">Added words</div>
+            </div>
+            <div>
+                <div class="stat-value deleted" id="deletedCount">0</div>
+                <div class="stat-label deleted" id="deletedLabel">Deleted words</div>
+            </div>
+            <div>
+                <div class="stat-value unchanged" id="unchangedCount">0</div>
+                <div class="stat-label unchanged" id="unchangedLabel">Unchanged words</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="diffResults" style="display: none;">
+        <div class="diff-section">
+            <div class="diff-title">Text 1 with changes highlighted</div>
+            <div class="diff-content" id="diff1"></div>
+        </div>
+
+        <div class="diff-section">
+            <div class="diff-title">Text 2 with changes highlighted</div>
+            <div class="diff-content" id="diff2"></div>
+        </div>
+    </div>
+
+    <div class="empty-state" id="emptyState">
+        Enter text in both fields above to see the differences
+    </div>
+
+    <div class="legend">
+        <div class="legend-title">Legend</div>
+        <div class="legend-items">
+            <div class="legend-item">
+                <span class="legend-badge added">Added</span>
+                <span>Text present in Text 2 but not in Text 1</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-badge deleted">Deleted</span>
+                <span>Text present in Text 1 but not in Text 2</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-badge" style="background: #f3f4f6; color: #374151;">Unchanged</span>
+                <span>Text that is the same in both</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let showWordDiff = true;
+
+        const elements = {
+            text1: document.getElementById('text1'),
+            text2: document.getElementById('text2'),
+            diff1: document.getElementById('diff1'),
+            diff2: document.getElementById('diff2'),
+            statsCard: document.getElementById('statsCard'),
+            diffResults: document.getElementById('diffResults'),
+            emptyState: document.getElementById('emptyState'),
+            wordBtn: document.getElementById('wordBtn'),
+            charBtn: document.getElementById('charBtn'),
+            addedCount: document.getElementById('addedCount'),
+            deletedCount: document.getElementById('deletedCount'),
+            unchangedCount: document.getElementById('unchangedCount'),
+            addedLabel: document.getElementById('addedLabel'),
+            deletedLabel: document.getElementById('deletedLabel'),
+            unchangedLabel: document.getElementById('unchangedLabel')
+        };
+
+        function setMode(wordMode) {
+            showWordDiff = wordMode;
+            elements.wordBtn.className = wordMode ? 'btn active' : 'btn btn-secondary';
+            elements.charBtn.className = wordMode ? 'btn btn-secondary' : 'btn active';
+            
+            const unit = wordMode ? 'words' : 'characters';
+            elements.addedLabel.textContent = `Added ${unit}`;
+            elements.deletedLabel.textContent = `Deleted ${unit}`;
+            elements.unchangedLabel.textContent = `Unchanged ${unit}`;
+            
+            compare();
+        }
+
+        function buildLCS(arr1, arr2) {
+            const m = arr1.length;
+            const n = arr2.length;
+            const lcs = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    if (arr1[i - 1] === arr2[j - 1]) {
+                        lcs[i][j] = lcs[i - 1][j - 1] + 1;
+                    } else {
+                        lcs[i][j] = Math.max(lcs[i - 1][j], lcs[i][j - 1]);
+                    }
+                }
+            }
+
+            return lcs;
+        }
+
+        function buildDiffFromLCS(arr1, arr2, lcs) {
+            const result1 = [];
+            const result2 = [];
+
+            let i = arr1.length;
+            let j = arr2.length;
+
+            const operations = [];
+
+            while (i > 0 || j > 0) {
+                if (i > 0 && j > 0 && arr1[i - 1] === arr2[j - 1]) {
+                    operations.push({ type: 'equal', i1: i - 1, j1: j - 1 });
+                    i--;
+                    j--;
+                } else if (j > 0 && (i === 0 || lcs[i][j - 1] >= lcs[i - 1][j])) {
+                    operations.push({ type: 'insert', j1: j - 1 });
+                    j--;
+                } else if (i > 0) {
+                    operations.push({ type: 'delete', i1: i - 1 });
+                    i--;
+                }
+            }
+
+            operations.reverse();
+
+            for (const op of operations) {
+                if (op.type === 'equal') {
+                    result1.push({ text: arr1[op.i1], type: 'unchanged' });
+                    result2.push({ text: arr2[op.j1], type: 'unchanged' });
+                } else if (op.type === 'delete') {
+                    result1.push({ text: arr1[op.i1], type: 'deleted' });
+                } else if (op.type === 'insert') {
+                    result2.push({ text: arr2[op.j1], type: 'added' });
+                }
+            }
+
+            return { result1, result2 };
+        }
+
+        function calculateDiff(str1, str2, byWord) {
+            const arr1 = byWord ? str1.split(/\s+/).filter(w => w.length > 0) : str1.split('');
+            const arr2 = byWord ? str2.split(/\s+/).filter(w => w.length > 0) : str2.split('');
+
+            const lcs = buildLCS(arr1, arr2);
+            return buildDiffFromLCS(arr1, arr2, lcs);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderDiff(diffResult) {
+            const separator = showWordDiff ? ' ' : '';
+            return diffResult.map(item => {
+                const escapedText = escapeHtml(item.text);
+                if (item.type === 'added') {
+                    return `<span class="added">${escapedText}</span>`;
+                } else if (item.type === 'deleted') {
+                    return `<span class="deleted">${escapedText}</span>`;
+                }
+                return escapedText;
+            }).join(separator);
+        }
+
+        function compare() {
+            const text1 = elements.text1.value;
+            const text2 = elements.text2.value;
+
+            if (!text1 && !text2) {
+                elements.statsCard.style.display = 'none';
+                elements.diffResults.style.display = 'none';
+                elements.emptyState.style.display = 'block';
+                return;
+            }
+
+            const diff = calculateDiff(text1, text2, showWordDiff);
+
+            const added = diff.result2.filter(item => item.type === 'added').length;
+            const deleted = diff.result1.filter(item => item.type === 'deleted').length;
+            const unchanged = diff.result1.filter(item => item.type === 'unchanged').length;
+
+            elements.addedCount.textContent = added;
+            elements.deletedCount.textContent = deleted;
+            elements.unchangedCount.textContent = unchanged;
+
+            elements.diff1.innerHTML = renderDiff(diff.result1);
+            elements.diff2.innerHTML = renderDiff(diff.result2);
+
+            elements.statsCard.style.display = 'block';
+            elements.diffResults.style.display = 'block';
+            elements.emptyState.style.display = 'none';
+        }
+
+        function clearAll() {
+            elements.text1.value = '';
+            elements.text2.value = '';
+            elements.statsCard.style.display = 'none';
+            elements.diffResults.style.display = 'none';
+            elements.emptyState.style.display = 'block';
+        }
+
+        function swapTexts() {
+            const temp = elements.text1.value;
+            elements.text1.value = elements.text2.value;
+            elements.text2.value = temp;
+            compare();
+        }
+    </script>
+</body>
+</html>
