@@ -7,27 +7,46 @@
     <meta name="description" content="Send messages to Telegram users with legacy Markdown formatting">
     <meta name="category" content="Telegram">
     <style>
-        * { box-sizing: border-box; }
+        /* General Styling */
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             font-family: system-ui, -apple-system, sans-serif;
             background: #f9fafb;
             color: #1f2937;
         }
-        .container {
+
+        .telegram-broadcast-tool {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
-        .header {
+
+        /* Header */
+        .tool-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 24px;
             border-radius: 12px;
             margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        .header h1 { margin: 0; font-size: 24px; }
-        .header p { margin: 8px 0 0; opacity: 0.9; font-size: 14px; }
+
+        .tool-header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .tool-header p {
+            margin: 8px 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        /* Cards */
         .card {
             background: white;
             border-radius: 8px;
@@ -36,77 +55,194 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             border: 1px solid #e5e7eb;
         }
-        .card h2 { margin: 0 0 16px; font-size: 18px; color: #374151; }
-        .input-group { margin-bottom: 16px; }
-        .label { display: block; font-weight: 500; margin-bottom: 6px; color: #374151; font-size: 14px; }
-        .input, .textarea {
+
+        .card h2 {
+            margin: 0 0 16px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #374151;
+        }
+
+        /* Form Elements */
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .input, .textarea, .select {
             width: 100%;
             padding: 8px 12px;
             border: 1px solid #d1d5db;
             border-radius: 6px;
             font-size: 14px;
+            transition: all 0.2s;
             font-family: inherit;
-            background: #fff;
+            background-color: #fff;
         }
-        .input:focus, .textarea:focus {
+
+        .input:focus, .textarea:focus, .select:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
+
+        .input:disabled {
+            background-color: #f3f4f6;
+            cursor: not-allowed;
+        }
+
         .textarea {
             resize: vertical;
             min-height: 120px;
-            font-family: 'SF Mono', 'Monaco', monospace;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
         }
+
+        #messageInput {
+            min-height: 200px;
+        }
+
+        /* Buttons */
         .btn {
             padding: 8px 16px;
             border-radius: 6px;
             font-weight: 500;
             font-size: 14px;
             cursor: pointer;
+            transition: all 0.2s;
             border: none;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
             background: #667eea;
             color: white;
-            transition: all 0.2s;
         }
-        .btn:hover:not(:disabled) { background: #5a67d8; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-secondary { background: #e5e7eb; color: #374151; }
-        .btn-secondary:hover:not(:disabled) { background: #d1d5db; }
-        .btn-danger { background: #ef4444; }
-        .btn-danger:hover:not(:disabled) { background: #dc2626; }
-        .btn-sm { padding: 4px 8px; font-size: 12px; }
-        .settings-panel {
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            border-radius: 8px;
-            padding: 16px;
+
+        .btn:hover:not(:disabled) {
+            background: #5a67d8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #d1d5db;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #dc2626;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
             margin-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+            overflow-x: auto;
         }
-        .settings-panel h3 { margin: 0 0 12px; font-size: 16px; color: #92400e; }
-        .settings-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-        .settings-row .input { flex: 1; }
-        .stored-indicator { font-size: 12px; color: #10b981; }
-        .markdown-help {
-            background: #f0f9ff;
-            border: 1px solid #e0f2fe;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 12px;
-            font-size: 13px;
+
+        .tab {
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #6b7280;
+            transition: all 0.2s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+            font-size: 14px;
         }
-        .markdown-help code {
-            background: #dbeafe;
-            padding: 2px 4px;
-            border-radius: 3px;
-            font-family: 'SF Mono', 'Monaco', monospace;
+
+        .tab.active {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            margin-bottom: -2px;
         }
-        .char-counter { font-size: 12px; text-align: right; margin-top: 4px; color: #6b7280; }
+
+        /* Badges & Status */
+        .badge {
+            background: #667eea;
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-badge.success { color: #10b981; }
+        .status-badge.warning { color: #f59e0b; }
+        .success-text { color: #10b981; font-weight: 500; }
+        .error-text { color: #ef4444; font-weight: 500; }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #667eea;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        /* Character Counter */
+        .char-counter {
+            font-size: 12px;
+            text-align: right;
+            margin-top: 4px;
+            color: #6b7280;
+        }
+
         .char-counter.danger { color: #ef4444; }
-        .media-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+
+        /* Media Tabs */
+        .media-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
         .media-tab {
             flex: 1;
             padding: 8px;
@@ -115,20 +251,17 @@
             cursor: pointer;
             text-align: center;
             border-radius: 6px;
+            transition: all 0.2s;
             font-size: 14px;
         }
-        .media-tab.active { background: #667eea; color: white; border-color: #667eea; }
-        .checkbox-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            padding: 8px;
-            background: #f9fafb;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
+
+        .media-tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
         }
-        .progress-bar { width: 100%; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; margin: 16px 0; }
-        .progress-fill { height: 100%; background: #667eea; transition: width 0.3s; width: 0%; }
+
+        /* Error List */
         .error-list {
             max-height: 200px;
             overflow-y: auto;
@@ -139,447 +272,1255 @@
             font-size: 13px;
             border: 1px solid #fecaca;
         }
-        .error-item { margin-bottom: 8px; color: #991b1b; }
-        .success-text { color: #10b981; font-weight: 500; }
-        .error-text { color: #ef4444; font-weight: 500; }
+
+        .error-item {
+            margin-bottom: 8px;
+            color: #991b1b;
+        }
+
+        /* Bot Info */
+        .bot-info {
+            background: #f0f9ff;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 12px;
+            font-size: 14px;
+            border: 1px solid #e0f2fe;
+        }
+
+        .bot-info-item {
+            margin-bottom: 4px;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1f2937;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-bottom: 4px;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        /* Utility Classes */
+        .icon { width: 20px; height: 20px; display: inline-block; vertical-align: middle; }
+        .icon-16 { width: 16px; height: 16px; }
         .flex { display: flex; align-items: center; gap: 8px; }
         .flex-wrap { flex-wrap: wrap; }
         .ml-auto { margin-left: auto; }
         .mt-8 { margin-top: 8px; }
         .mt-12 { margin-top: 12px; }
         .mt-16 { margin-top: 16px; }
-        .hidden { display: none; }
+        .mt-20 { margin-top: 20px; }
+        .mb-8 { margin-bottom: 8px; }
+        .mb-12 { margin-bottom: 12px; }
+        .text-right { text-align: right; }
         .text-sm { font-size: 12px; }
+        .hidden { display: none; }
+
+        /* Preview Box */
+        .preview-box {
+            margin-top: 16px;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .image-placeholder {
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        /* Checkbox Group */
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* Markdown Help */
+        .markdown-help {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .markdown-help code {
+            background: #fef3c7;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+        }
+
+        .markdown-help ul {
+            margin: 8px 0 0 0;
+            padding-left: 20px;
+        }
+
+        .markdown-help li {
+            margin-bottom: 4px;
+        }
+
+        /* Responsive Layout */
+        @media (max-width: 768px) {
+            .desktop-only { display: none !important; }
+            .tool-header { padding: 16px; }
+            .card { padding: 16px; }
+            .tab-content { display: none; }
+            .tab-content.active { display: block; }
+        }
+
         @media (min-width: 769px) {
-            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            .mobile-only { display: none !important; }
+            .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
             .full-width { grid-column: 1 / -1; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1>Telegram Broadcaster (Markdown)</h1>
+    <div class="telegram-broadcast-tool">
+        <header class="tool-header">
+            <h1>Telegram Broadcast Tool v4</h1>
             <p>Send messages with legacy Markdown formatting</p>
+            <details style="margin-top: 12px; cursor: pointer;">
+                <summary style="font-size: 13px; opacity: 0.9;">Quick Guide</summary>
+                <div style="margin-top: 8px; font-size: 12px; line-height: 1.6; opacity: 0.95;">
+                    <strong>1. Bot Setup:</strong> Enter and validate your bot token<br>
+                    <strong>2. Recipients:</strong> Add recipient IDs (comma-separated or one per line)<br>
+                    <strong>3. Compose:</strong> Write your message with Markdown formatting<br>
+                    <strong>4. Send:</strong> Use "Send Test" first, then "Start Broadcast"<br>
+                    <br>
+                    <strong>Legacy Markdown:</strong> *bold*, _italic_, `code`, [link](url)<br>
+                    <strong>Rate Limit:</strong> ~30 messages per second with 1s batch delay
+                </div>
+            </details>
         </header>
 
-        <!-- Settings Panel -->
-        <div class="settings-panel">
-            <h3>⚙️ Settings</h3>
-            <div class="settings-row">
-                <input type="password" class="input" id="botTokenInput" placeholder="Enter Telegram Bot Token">
-                <button class="btn btn-sm" onclick="saveToken()">Save</button>
-                <button class="btn btn-sm btn-secondary" onclick="clearToken()">Clear</button>
-            </div>
-            <div id="tokenStatus" class="mt-8"></div>
-            <div class="settings-row mt-12">
-                <input type="text" class="input" id="testRecipientInput" placeholder="Test Recipient ID">
-                <button class="btn btn-sm" onclick="saveTestRecipient()">Save</button>
-            </div>
-            <div id="testRecipientStatus" class="mt-8"></div>
+        <!-- Mobile Tabs -->
+        <div class="tabs mobile-only" id="mobileTabs">
+            <button class="tab active" data-tab="compose">
+                <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                <span>Compose</span>
+            </button>
+            <button class="tab" data-tab="recipients">
+                <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Recipients</span>
+                <span class="badge" id="recipientsBadge" style="display: none;">0</span>
+            </button>
+            <button class="tab" data-tab="bot">
+                 <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 2v2"/><path d="M9 2v2"/></svg>
+                <span>Bot Setup</span>
+                <span class="status-badge warning" id="botStatusBadge">!</span>
+            </button>
+            <button class="tab" data-tab="send">
+                <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <span>Send</span>
+            </button>
         </div>
 
-        <div class="grid">
+        <main class="main-grid">
             <!-- Message Composition -->
-            <div class="card">
-                <h2>Message</h2>
-                <div class="markdown-help">
-                    <strong>Legacy Markdown:</strong>
-                    <code>*bold*</code>, <code>_italic_</code>, <code>`code`</code>, <code>[link](url)</code>
-                </div>
-                <div class="input-group">
-                    <label class="label" id="messageLabel">Message</label>
-                    <textarea class="textarea" id="messageInput" rows="8" placeholder="Enter your message with Markdown..."></textarea>
-                    <div class="char-counter" id="charCounter">0 / 4096</div>
-                </div>
+            <section class="card tab-content active" id="compose-tab">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                    Message Composition
+                </h2>
 
-                <div class="input-group">
-                    <label class="label">Link Preview</label>
-                    <div class="checkbox-group">
-                        <label class="flex text-sm"><input type="checkbox" id="disableLinkPreview"> Disable link preview</label>
-                        <label class="flex text-sm"><input type="checkbox" id="preferLargeMedia"> Prefer large media</label>
-                        <label class="flex text-sm"><input type="checkbox" id="showAboveText"> Show above text</label>
+                <div class="markdown-help">
+                    <strong>Legacy Markdown Syntax:</strong>
+                    <ul>
+                        <li><code>*bold text*</code> - bold</li>
+                        <li><code>_italic text_</code> - italic</li>
+                        <li><code>`inline code`</code> - inline code</li>
+                        <li><code>```code block```</code> - code block</li>
+                        <li><code>[link text](https://url)</code> - hyperlink</li>
+                    </ul>
+                    <div style="margin-top: 8px; color: #92400e;">
+                        <strong>Note:</strong> Escape special characters with \\ (e.g., \\* for literal *).<br>
+                        Entities cannot be nested in legacy Markdown mode.
                     </div>
                 </div>
 
                 <div class="input-group">
-                    <label class="label">Media</label>
+                    <label class="label" for="messageInput">
+                        <span id="messageLabel">Message (Raw Markdown)</span>
+                        <span class="tooltip" data-tooltip="Enter raw Markdown text - it will be sent as-is to Telegram">
+                            <svg class="icon-16" style="vertical-align: middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                        </span>
+                    </label>
+
+                    <textarea class="textarea" id="messageInput" placeholder="Enter your message with Markdown formatting...
+
+Example:
+*Bold text* and _italic text_
+
+Check out [our website](https://example.com)
+
+`inline code` or code blocks:
+```
+code block
+```"></textarea>
+                    <div class="char-counter" id="charCounter">0 / 4096 characters</div>
+                </div>
+
+                <div class="input-group">
+                    <label class="label">Link Preview Options</label>
+                    <div class="checkbox-group">
+                        <label class="flex text-sm">
+                            <input type="checkbox" id="disableLinkPreview">
+                            Disable link preview
+                        </label>
+                        <label class="flex text-sm" id="preferLargeMediaWrapper">
+                            <input type="checkbox" id="preferLargeMedia">
+                            Prefer large media preview
+                        </label>
+                        <label class="flex text-sm" id="showAboveTextWrapper">
+                            <input type="checkbox" id="showAboveText">
+                            Show link preview above text
+                        </label>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="label" for="replyToInput">Reply to (Optional)</label>
+                    <input class="input" id="replyToInput" placeholder="Message ID">
+                </div>
+
+                <div class="input-group">
+                    <label class="flex text-sm">
+                        <input type="checkbox" id="teamMessageCheckbox">
+                        Team message
+                    </label>
+                </div>
+
+                <div class="input-group">
+                    <label class="label">Media (Optional)</label>
                     <div class="media-tabs">
-                        <button class="media-tab active" onclick="setMediaType('none', this)">None</button>
+                        <button class="media-tab active" onclick="setMediaType('none', this)">No Media</button>
                         <button class="media-tab" onclick="setMediaType('upload', this)">Upload</button>
                         <button class="media-tab" onclick="setMediaType('url', this)">URL</button>
+                        <button class="media-tab" onclick="setMediaType('fileId', this)">File ID</button>
                     </div>
+
                     <div id="mediaUpload" class="hidden">
-                        <input type="file" id="fileInput" accept="image/*" style="display: none;">
-                        <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">Choose File</button>
-                        <span id="selectedFile" class="text-sm mt-8" style="display: block;"></span>
+                        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" style="display: none;">
+                        <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">
+                           <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                            Choose File
+                        </button>
+                        <div id="selectedFile" class="mt-8 text-sm"></div>
                     </div>
+
                     <div id="mediaUrl" class="hidden">
                         <input class="input" id="mediaUrlInput" placeholder="https://example.com/image.jpg">
                     </div>
-                </div>
 
-                <div class="input-group">
-                    <label class="label">Reply Markup (JSON)</label>
-                    <textarea class="textarea" id="replyMarkupInput" rows="4" placeholder='{"inline_keyboard": [[{"text": "Button", "url": "..."}]]}'></textarea>
-                </div>
-            </div>
+                    <div id="mediaFileId" class="hidden">
+                        <input class="input" id="mediaFileIdInput" placeholder="Enter Telegram file ID">
+                    </div>
 
-            <!-- Recipients -->
-            <div class="card">
-                <h2>Recipients</h2>
-                <div class="input-group">
-                    <label class="label">Recipient IDs</label>
-                    <textarea class="textarea" id="recipientsInput" rows="6" placeholder="123456789, 987654321&#10;555555555"></textarea>
-                    <div class="mt-8 flex text-sm" style="gap: 16px;">
-                        <span class="success-text">Valid: <span id="validCount">0</span></span>
-                        <span class="error-text" id="invalidWrapper" style="display: none;">Invalid: <span id="invalidCount">0</span></span>
+                    <!-- Media Options (shown when media is selected) -->
+                    <div id="mediaOptions" class="hidden mt-12">
+                        <label class="label">Media Options</label>
+                        <div class="checkbox-group">
+                            <label class="flex text-sm">
+                                <input type="checkbox" id="showCaptionAboveMedia">
+                                Show caption above media
+                            </label>
+                        </div>
                     </div>
                 </div>
-                <div class="input-group">
-                    <label class="flex text-sm"><input type="checkbox" id="disableNotification"> Send silently</label>
-                    <label class="flex text-sm"><input type="checkbox" id="protectContent"> Protect content</label>
-                </div>
-            </div>
 
-            <!-- Broadcast Control -->
-            <div class="card full-width">
-                <h2>Broadcast</h2>
+                <div class="input-group">
+                    <label class="label" for="replyMarkupInput">Reply Markup (Optional, JSON)</label>
+                    <textarea class="textarea" id="replyMarkupInput" rows="8" placeholder='{
+  "inline_keyboard": [
+    [
+      {
+        "text": "Button Text",
+        "url": "https://example.com"
+      }
+    ]
+  ]
+}'></textarea>
+                </div>
+
+                <div class="flex mt-16">
+                    <button class="btn btn-secondary" onclick="showPreview()">
+                        <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Preview
+                    </button>
+                </div>
+            </section>
+
+            <!-- Recipients Management -->
+            <section class="card tab-content" id="recipients-tab">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Recipients
+                </h2>
+
+                <div class="input-group">
+                    <label class="label" for="recipientsInput">
+                        Recipient IDs
+                        <span class="tooltip" data-tooltip="Enter comma-separated IDs, one per line, or JSON array">
+                            <svg class="icon-16" style="vertical-align: middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                        </span>
+                    </label>
+                    <textarea class="textarea" id="recipientsInput" rows="6"
+                        placeholder="123456789, 987654321&#10;555555555&#10;or&#10;[123456789, 987654321, 555555555]" style="font-family: monospace;"></textarea>
+
+                    <div class="recipient-stats mt-8 flex" style="gap: 16px; font-size: 14px;">
+                        <div><span class="success-text">Valid: <span id="validCount">0</span></span></div>
+                        <div id="invalidCountWrapper" style="display: none;"><span class="error-text">Invalid: <span id="invalidCount">0</span></span></div>
+                        <div id="estimatedTimeWrapper" style="display: none;"><span style="color: #6b7280;">~<span id="estimatedTime">0</span>s to send</span></div>
+                    </div>
+
+                    <div id="invalidRecipients" class="error-list hidden">
+                        <strong>Invalid IDs:</strong>
+                        <div id="invalidList" class="mt-8"></div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="flex text-sm"><input type="checkbox" id="disableNotification"> Send silently (disable notification)</label>
+                </div>
+
+                <div class="input-group">
+                    <label class="flex text-sm"><input type="checkbox" id="protectContent"> Protect content (disable forwarding)</label>
+                </div>
+            </section>
+
+            <!-- Bot Configuration -->
+            <section class="card full-width tab-content" id="bot-tab">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 2v2"/><path d="M9 2v2"/></svg>
+                    Bot Configuration
+                </h2>
+
+                <div class="input-group">
+                    <label class="label" for="botToken">Bot Token</label>
+                    <div class="flex">
+                        <input type="password" class="input" id="botToken" placeholder="Enter your bot token" style="flex: 1;">
+                        <button class="btn" onclick="validateBotToken()">Validate</button>
+                    </div>
+
+                    <div id="validationError" class="error-text mt-8 hidden"></div>
+
+                    <div id="botInfo" class="bot-info hidden">
+                        <div class="bot-info-item"><strong>Bot Name:</strong> <span id="botName"></span></div>
+                        <div class="bot-info-item"><strong>Username:</strong> @<span id="botUsername"></span></div>
+                        <div class="bot-info-item"><strong>Bot ID:</strong> <span id="botId"></span></div>
+                        <div id="botDescriptionWrapper" class="bot-info-item hidden"><strong>Description:</strong> <span id="botDescription"></span></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Broadcast Controls -->
+            <section class="card full-width tab-content" id="send-tab">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Broadcast Control
+                </h2>
+
                 <div class="flex flex-wrap">
-                    <button class="btn btn-secondary" id="testBtn" onclick="startBroadcast(true)" disabled>Send Test</button>
-                    <button class="btn" id="broadcastBtn" onclick="startBroadcast(false)" disabled>Start Broadcast</button>
-                    <button class="btn btn-secondary hidden" id="pauseBtn" onclick="togglePause()">Pause</button>
-                    <button class="btn btn-secondary hidden" id="resumeBtn" onclick="togglePause()">Resume</button>
-                    <button class="btn btn-danger hidden" id="stopBtn" onclick="stopBroadcast()">Stop</button>
-                    <button class="btn btn-danger ml-auto" onclick="clearAll()">Clear</button>
+                    <button class="btn btn-secondary" onclick="startBroadcast(true)" id="testBtn" disabled>
+                        <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32-17.32"/><path d="m12 20 4-4"/></svg>
+                        Send Test
+                    </button>
+
+                    <button class="btn" onclick="startBroadcast(false)" id="broadcastBtn" disabled>
+                        <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        Start Broadcast
+                    </button>
+
+                    <button class="btn btn-secondary hidden" id="pauseBtn" onclick="togglePause()">
+                        <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>
+                        Pause
+                    </button>
+
+                    <button class="btn btn-secondary hidden" id="resumeBtn" onclick="togglePause()">
+                        <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        Resume
+                    </button>
+
+                    <button class="btn btn-danger hidden" id="stopBtn" onclick="stopBroadcast()">
+                        <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                        Stop
+                    </button>
+
+                    <button class="btn btn-danger ml-auto" onclick="clearAll()">
+                        <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        Clear All
+                    </button>
                 </div>
 
                 <div id="progressWrapper" class="hidden mt-16">
                     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-                    <div class="text-sm"><span id="progressText">0</span>% <span id="pausedText" class="hidden">(Paused)</span></div>
+                    <div class="text-sm" style="color: #6b7280;">
+                        <span id="progressText">0</span>% complete <span id="pausedText" class="hidden">(Paused)</span>
+                    </div>
                 </div>
 
-                <div id="resultsWrapper" class="hidden mt-16">
-                    <div class="flex" style="gap: 24px;">
-                        <span class="success-text">Success: <span id="successCount">0</span></span>
-                        <span class="error-text">Failed: <span id="failedCount">0</span></span>
-                        <span class="text-sm">Rate: <span id="successRate">0</span>%</span>
-                    </div>
-                    <div id="errorSection" class="hidden">
-                        <div class="flex mt-8" style="gap: 8px;">
-                            <button class="btn btn-secondary btn-sm" onclick="copyFailedIds()">Copy Failed IDs</button>
+                <div id="resultsWrapper" class="hidden mt-20">
+                    <h3 style="font-size: 16px; margin-bottom: 12px;">Results</h3>
+                    <div class="flex mb-12" style="gap: 24px;">
+                        <div>
+                            <svg class="icon success-text" style="vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            <span class="success-text">Success: <span id="successCount">0</span></span>
                         </div>
-                        <div class="error-list mt-8"><strong>Errors:</strong><div id="errorList"></div></div>
+                        <div>
+                           <svg class="icon error-text" style="vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                            <span class="error-text">Failed: <span id="failedCount">0</span></span>
+                        </div>
+                        <div><span style="color: #6b7280;">Success Rate: <span id="successRate">0</span>%</span></div>
                     </div>
+
+                    <div id="errorSection" class="hidden">
+                        <div class="flex mb-8" style="gap: 8px;">
+                            <button class="btn btn-secondary text-sm" style="padding: 4px 8px;" onclick="copyFailedIds()">
+                               <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                Copy Failed IDs
+                            </button>
+                            <button class="btn btn-secondary text-sm" style="padding: 4px 8px;" onclick="downloadResults()">
+                                <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                                Download Results
+                            </button>
+                        </div>
+                        <div class="error-list"><strong>Errors:</strong><div id="errorList"></div></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Preview Modal -->
+        <div class="modal" id="previewModal" onclick="hidePreview()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <h3 style="margin-top: 0;">Message Preview</h3>
+                <div class="preview-box">
+                    <div id="previewMedia" class="image-placeholder hidden">
+                        <svg class="icon" style="width: 32px; height: 32px; margin: 0 auto; opacity: 0.5;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <div class="text-sm mt-8" style="color: #6b7280;">[Image will appear here]</div>
+                    </div>
+                    <div id="previewText" style="white-space: pre-wrap; word-break: break-word;"></div>
+                    <div id="previewReplyMarkup" class="mt-12"></div>
+                </div>
+                <div class="text-right mt-16">
+                    <button class="btn btn-secondary" onclick="hidePreview()">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Storage keys
         const STORAGE_KEYS = {
             BOT_TOKEN: 'telegram_broadcaster_md_bot_token',
             TEST_RECIPIENT: 'telegram_broadcaster_md_test_recipient'
         };
+
+        // Constants
         const TEXT_LIMIT = 4096;
         const CAPTION_LIMIT = 1024;
+        const TEAM_IMAGE_URL = 'https://cdn.etopodtema.com/Telegram%20Images/SupportMessage3.png';
 
+        // Global state for managing the broadcast process
         const state = {
-            tokenValidated: false,
             botInfo: null,
             validatedRecipients: [],
+            invalidRecipients: [],
             broadcasting: false,
             paused: false,
             pauseFlag: false,
             progress: 0,
             results: { success: 0, failed: 0, errors: [] },
+            tokenValidated: false,
             abortController: null,
+            estimatedTime: 0,
             mediaType: 'none',
             mediaFile: null
         };
 
-        const UI = {
+        // DOM element references
+        const UIElements = {
             messageInput: document.getElementById('messageInput'),
             recipientsInput: document.getElementById('recipientsInput'),
-            botTokenInput: document.getElementById('botTokenInput'),
-            testRecipientInput: document.getElementById('testRecipientInput'),
+            botToken: document.getElementById('botToken'),
             testBtn: document.getElementById('testBtn'),
             broadcastBtn: document.getElementById('broadcastBtn'),
+            replyToInput: document.getElementById('replyToInput'),
+            teamMessageCheckbox: document.getElementById('teamMessageCheckbox'),
             mediaUrlInput: document.getElementById('mediaUrlInput'),
-            replyMarkupInput: document.getElementById('replyMarkupInput')
+            replyMarkupInput: document.getElementById('replyMarkupInput'),
+            disableLinkPreview: document.getElementById('disableLinkPreview'),
+            preferLargeMedia: document.getElementById('preferLargeMedia'),
+            showAboveText: document.getElementById('showAboveText'),
+            showCaptionAboveMedia: document.getElementById('showCaptionAboveMedia')
         };
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadSettings();
-            UI.messageInput.addEventListener('input', updateCharCounter);
-            UI.recipientsInput.addEventListener('input', parseRecipients);
-            document.getElementById('fileInput').addEventListener('change', e => {
-                state.mediaFile = e.target.files[0];
-                document.getElementById('selectedFile').textContent = state.mediaFile ? state.mediaFile.name : '';
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load saved bot token from localStorage
+            const savedToken = localStorage.getItem(STORAGE_KEYS.BOT_TOKEN);
+            if (savedToken) {
+                UIElements.botToken.value = savedToken;
+                validateBotToken(); // Auto-validate if token exists
+            }
+
+            // Set up event listeners
+            UIElements.messageInput.addEventListener('input', handleMessageInput);
+            UIElements.recipientsInput.addEventListener('input', parseRecipients);
+            UIElements.teamMessageCheckbox.addEventListener('change', handleTeamMessageCheck);
+            document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+            // Toggle link preview options based on "disable link preview"
+            UIElements.disableLinkPreview.addEventListener('change', function() {
+                const disabled = this.checked;
+                document.getElementById('preferLargeMediaWrapper').style.opacity = disabled ? '0.5' : '1';
+                document.getElementById('showAboveTextWrapper').style.opacity = disabled ? '0.5' : '1';
+                UIElements.preferLargeMedia.disabled = disabled;
+                UIElements.showAboveText.disabled = disabled;
+                if (disabled) {
+                    UIElements.preferLargeMedia.checked = false;
+                    UIElements.showAboveText.checked = false;
+                }
             });
-            document.getElementById('disableLinkPreview').addEventListener('change', function() {
-                document.getElementById('preferLargeMedia').disabled = this.checked;
-                document.getElementById('showAboveText').disabled = this.checked;
+
+            // Mobile tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab.getAttribute('data-tab')));
             });
+
+            // Initial UI updates
             parseRecipients();
             updateCharCounter();
         });
 
-        function loadSettings() {
-            const token = localStorage.getItem(STORAGE_KEYS.BOT_TOKEN);
-            const testRecipient = localStorage.getItem(STORAGE_KEYS.TEST_RECIPIENT);
-            if (token) { UI.botTokenInput.value = token; validateToken(token); }
-            else updateTokenStatus(false, 'No token configured');
-            if (testRecipient) { UI.testRecipientInput.value = testRecipient; updateTestStatus(true); }
-            else updateTestStatus(false, 'No test recipient');
+        // --- EVENT HANDLERS ---
+
+        function handleMessageInput() {
+            updateCharCounter();
+            updateButtonStates();
         }
 
-        function saveToken() {
-            const token = UI.botTokenInput.value.trim();
-            if (!token) return alert('Enter a token');
-            localStorage.setItem(STORAGE_KEYS.BOT_TOKEN, token);
-            validateToken(token);
+        function handleFileSelect(e) {
+            state.mediaFile = e.target.files[0];
+            document.getElementById('selectedFile').textContent = state.mediaFile ? `Selected: ${state.mediaFile.name}` : '';
         }
 
-        function clearToken() {
-            if (!confirm('Remove saved token?')) return;
-            localStorage.removeItem(STORAGE_KEYS.BOT_TOKEN);
-            UI.botTokenInput.value = '';
-            state.tokenValidated = false;
-            state.botInfo = null;
-            updateTokenStatus(false, 'Token removed');
-            updateButtons();
-        }
+        function handleTeamMessageCheck(e) {
+            const isChecked = e.target.checked;
+            const urlTabButton = document.querySelector('.media-tab[onclick*="\'url\'"]');
 
-        function saveTestRecipient() {
-            const id = UI.testRecipientInput.value.trim();
-            if (!/^-?\d+$/.test(id)) return alert('Enter valid ID');
-            localStorage.setItem(STORAGE_KEYS.TEST_RECIPIENT, id);
-            updateTestStatus(true);
-        }
-
-        async function validateToken(token) {
-            try {
-                const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
-                const data = await res.json();
-                if (data.ok) {
-                    state.botInfo = data.result;
-                    state.tokenValidated = true;
-                    updateTokenStatus(true);
-                } else {
-                    state.tokenValidated = false;
-                    updateTokenStatus(false, data.description);
+            if (isChecked) {
+                if (state.mediaType !== 'url') {
+                    setMediaType('url', urlTabButton);
                 }
-            } catch { state.tokenValidated = false; updateTokenStatus(false, 'Network error'); }
-            updateButtons();
-        }
-
-        function updateTokenStatus(ok, msg) {
-            document.getElementById('tokenStatus').innerHTML = ok && state.botInfo
-                ? `<span class="stored-indicator">✓ @${state.botInfo.username}</span>`
-                : `<span class="text-sm" style="color:#6b7280">${msg}</span>`;
-        }
-
-        function updateTestStatus(ok, msg) {
-            document.getElementById('testRecipientStatus').innerHTML = ok
-                ? '<span class="stored-indicator">✓ Saved</span>'
-                : `<span class="text-sm" style="color:#6b7280">${msg || ''}</span>`;
+                UIElements.mediaUrlInput.value = TEAM_IMAGE_URL;
+                UIElements.mediaUrlInput.disabled = true;
+            } else {
+                UIElements.mediaUrlInput.disabled = false;
+            }
         }
 
         function updateCharCounter() {
-            const len = UI.messageInput.value.length;
+            const text = UIElements.messageInput.value || '';
             const limit = state.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
+            const charCount = text.length;
+
             const counter = document.getElementById('charCounter');
-            counter.textContent = `${len} / ${limit}`;
-            counter.classList.toggle('danger', len > limit);
-            updateButtons();
+            counter.textContent = `${charCount} / ${limit} characters`;
+            counter.classList.toggle('danger', charCount > limit);
+
+            // Show warning if close to limit
+            if (charCount > limit * 0.9 && charCount <= limit) {
+                counter.style.color = '#f59e0b'; // Orange warning
+            } else if (charCount > limit) {
+                counter.style.color = '#ef4444'; // Red danger
+            } else {
+                counter.style.color = '#6b7280'; // Normal gray
+            }
+
+            updateButtonStates();
         }
 
         function parseRecipients() {
-            const input = UI.recipientsInput.value.trim();
-            if (!input) { state.validatedRecipients = []; updateRecipientStats(); updateButtons(); return; }
+            const input = UIElements.recipientsInput.value.trim();
+            if (!input) {
+                state.validatedRecipients = [];
+                state.invalidRecipients = [];
+                updateRecipientStats();
+                updateButtonStates();
+                return;
+            }
+
             let ids = [];
-            try { const p = JSON.parse(input); if (Array.isArray(p)) ids = p.map(String); }
-            catch { ids = input.replace(/[\[\]"']/g, '').split(/[,\s\n]+/).filter(Boolean); }
-            const unique = [...new Set(ids)];
-            const valid = [], invalid = [];
-            unique.forEach(id => (/^-?\d+$/.test(id) ? valid : invalid).push(id));
+            let isJsonArray = false;
+            try {
+                const parsed = JSON.parse(input);
+                if (Array.isArray(parsed)) {
+                    ids = parsed.map(id => String(id).trim());
+                    isJsonArray = true;
+                }
+            } catch {
+                // Not a valid JSON array
+            }
+
+            if (!isJsonArray) {
+                ids = input.replace(/[\[\]"']/g, '').split(/[,\s\n]+/).filter(id => id && id.length > 0);
+            }
+
+            const uniqueIds = [...new Set(ids)];
+            const valid = [];
+            const invalid = [];
+
+            uniqueIds.forEach(id => {
+                if (/^-?\d+$/.test(id) || /^@\w{5,}$/.test(id)) {
+                    valid.push(id);
+                } else {
+                    invalid.push(id);
+                }
+            });
+
             state.validatedRecipients = valid;
             state.invalidRecipients = invalid;
+            state.estimatedTime = Math.ceil(valid.length / 30);
+
             updateRecipientStats();
-            updateButtons();
+            updateButtonStates();
         }
 
         function updateRecipientStats() {
             document.getElementById('validCount').textContent = state.validatedRecipients.length;
-            const inv = document.getElementById('invalidWrapper');
-            if (state.invalidRecipients?.length > 0) {
-                inv.style.display = 'inline';
+            const recipientsBadge = document.getElementById('recipientsBadge');
+            recipientsBadge.textContent = state.validatedRecipients.length;
+            recipientsBadge.style.display = state.validatedRecipients.length > 0 ? 'inline-block' : 'none';
+
+            const invalidCountWrapper = document.getElementById('invalidCountWrapper');
+            const invalidRecipientsDiv = document.getElementById('invalidRecipients');
+            if (state.invalidRecipients.length > 0) {
+                invalidCountWrapper.style.display = 'block';
                 document.getElementById('invalidCount').textContent = state.invalidRecipients.length;
-            } else inv.style.display = 'none';
+                invalidRecipientsDiv.classList.remove('hidden');
+                document.getElementById('invalidList').textContent = state.invalidRecipients.join(', ');
+            } else {
+                invalidCountWrapper.style.display = 'none';
+                invalidRecipientsDiv.classList.add('hidden');
+            }
+
+            const estimatedTimeWrapper = document.getElementById('estimatedTimeWrapper');
+            if (state.validatedRecipients.length > 0) {
+                estimatedTimeWrapper.style.display = 'block';
+                document.getElementById('estimatedTime').textContent = state.estimatedTime;
+            } else {
+                estimatedTimeWrapper.style.display = 'none';
+            }
         }
 
-        function setMediaType(type, el) {
+        function setMediaType(type, element) {
+            if (type !== 'url' && UIElements.teamMessageCheckbox.checked) {
+                 UIElements.teamMessageCheckbox.checked = false;
+                 UIElements.mediaUrlInput.disabled = false;
+            }
+
             state.mediaType = type;
-            document.querySelectorAll('.media-tab').forEach(t => t.classList.remove('active'));
-            el.classList.add('active');
+
+            document.querySelectorAll('.media-tab').forEach(tab => tab.classList.remove('active'));
+            element.classList.add('active');
+
             document.getElementById('mediaUpload').classList.toggle('hidden', type !== 'upload');
             document.getElementById('mediaUrl').classList.toggle('hidden', type !== 'url');
-            document.getElementById('messageLabel').textContent = type !== 'none' ? 'Caption' : 'Message';
+            document.getElementById('mediaFileId').classList.toggle('hidden', type !== 'fileId');
+
+            // Show/hide media options (caption above media checkbox)
+            document.getElementById('mediaOptions').classList.toggle('hidden', type === 'none');
+
+            document.getElementById('messageLabel').textContent = type !== 'none' ? 'Caption (Raw Markdown)' : 'Message (Raw Markdown)';
             updateCharCounter();
         }
 
-        function updateButtons() {
-            const len = UI.messageInput.value.length;
-            const limit = state.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
-            const hasMsg = len > 0 || state.mediaType !== 'none';
-            const testRec = localStorage.getItem(STORAGE_KEYS.TEST_RECIPIENT);
-            UI.testBtn.disabled = !state.tokenValidated || !testRec || state.broadcasting || !hasMsg || len > limit;
-            UI.broadcastBtn.disabled = !state.tokenValidated || !state.validatedRecipients.length || state.broadcasting || !hasMsg || len > limit;
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
         }
 
-        async function sendMessage(chatId, data, signal) {
-            const endpoint = data.mediaType !== 'none' ? 'sendPhoto' : 'sendMessage';
-            const fd = new FormData();
-            fd.append('chat_id', chatId);
-            fd.append('parse_mode', 'Markdown');
-            fd.append('disable_notification', data.disableNotification);
-            fd.append('protect_content', data.protectContent);
-            if (data.replyMarkup) fd.append('reply_markup', JSON.stringify(data.replyMarkup));
-            if (data.mediaType === 'none' && data.linkPreviewOptions) fd.append('link_preview_options', JSON.stringify(data.linkPreviewOptions));
-            if (data.mediaType !== 'none') {
-                if (data.mediaFile) fd.append('photo', data.mediaFile);
-                else if (data.mediaUrl) fd.append('photo', data.mediaUrl);
-                if (data.message) fd.append('caption', data.message);
-            } else fd.append('text', data.message);
-            const res = await fetch(`https://api.telegram.org/bot${data.token}/${endpoint}`, { method: 'POST', body: fd, signal });
-            const json = await res.json();
-            if (!json.ok) throw new Error(json.description);
-            return json;
+        // --- BOT & API LOGIC ---
+
+        async function validateBotToken() {
+            const token = UIElements.botToken.value.trim();
+            if (!token) {
+                showValidationError('Please enter a bot token');
+                return;
+            }
+            hideValidationError();
+
+            // Show loading state
+            const validateBtn = document.querySelector('.btn[onclick="validateBotToken()"]');
+            const originalText = validateBtn.textContent;
+            validateBtn.disabled = true;
+            validateBtn.textContent = 'Validating...';
+
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+                const data = await response.json();
+
+                if (data.ok) {
+                    state.botInfo = data.result;
+                    state.tokenValidated = true;
+                    localStorage.setItem(STORAGE_KEYS.BOT_TOKEN, token);
+                    showBotInfo();
+                } else {
+                    state.tokenValidated = false;
+                    state.botInfo = null;
+                    showValidationError(`Invalid Token: ${data.description}`);
+                }
+            } catch (error) {
+                state.tokenValidated = false;
+                state.botInfo = null;
+                showValidationError('Network Error: Failed to connect to Telegram API. Check your internet connection.');
+            }
+
+            // Restore button state
+            validateBtn.disabled = false;
+            validateBtn.textContent = originalText;
+            updateButtonStates();
         }
 
-        async function startBroadcast(isTest) {
-            const token = localStorage.getItem(STORAGE_KEYS.BOT_TOKEN);
-            const testRecipient = localStorage.getItem(STORAGE_KEYS.TEST_RECIPIENT);
-            if (!state.tokenValidated) return alert('Configure token first');
-            if (isTest && !testRecipient) return alert('Configure test recipient first');
-            if (!isTest && !state.validatedRecipients.length) return alert('Add recipients');
-            const message = UI.messageInput.value;
-            if (!message && state.mediaType === 'none') return alert('Enter message or add media');
-            const limit = state.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
-            if (message.length > limit) return alert(`Message exceeds ${limit} chars`);
+        function showValidationError(message) {
+            const errorEl = document.getElementById('validationError');
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+            document.getElementById('botInfo').classList.add('hidden');
+            const statusBadge = document.getElementById('botStatusBadge');
+            statusBadge.textContent = '!';
+            statusBadge.classList.remove('success');
+            statusBadge.classList.add('warning');
+        }
 
+        function hideValidationError() {
+            document.getElementById('validationError').classList.add('hidden');
+        }
+
+        function showBotInfo() {
+            const info = state.botInfo;
+            document.getElementById('botName').textContent = info.first_name;
+            document.getElementById('botUsername').textContent = info.username;
+            document.getElementById('botId').textContent = info.id;
+
+            const descWrapper = document.getElementById('botDescriptionWrapper');
+            if (info.description) {
+                document.getElementById('botDescription').textContent = info.description;
+                descWrapper.classList.remove('hidden');
+            } else {
+                descWrapper.classList.add('hidden');
+            }
+
+            document.getElementById('botInfo').classList.remove('hidden');
+            const statusBadge = document.getElementById('botStatusBadge');
+            statusBadge.textContent = '✓';
+            statusBadge.classList.remove('warning');
+            statusBadge.classList.add('success');
+        }
+
+        async function sendMessage(chatId, signal, broadcastData) {
+            const {
+                token, message, mediaType, mediaUrl, mediaFileId, mediaFile,
+                disableNotification, protectContent, replyToMessageId,
+                replyMarkup, linkPreviewOptions, showCaptionAboveMedia
+            } = broadcastData;
+
+            const endpoint = mediaType !== 'none' ? 'sendPhoto' : 'sendMessage';
+            const url = `https://api.telegram.org/bot${token}/${endpoint}`;
+
+            const formData = new FormData();
+            formData.append('chat_id', chatId);
+            formData.append('disable_notification', disableNotification);
+            formData.append('protect_content', protectContent);
+
+            // Use legacy Markdown parse mode
+            formData.append('parse_mode', 'Markdown');
+
+            if (replyToMessageId) {
+                formData.append('reply_parameters', JSON.stringify({ message_id: replyToMessageId }));
+            }
+
+            if (replyMarkup) {
+                formData.append('reply_markup', JSON.stringify(replyMarkup));
+            }
+
+            // Add link preview options for text messages
+            if (mediaType === 'none' && linkPreviewOptions) {
+                formData.append('link_preview_options', JSON.stringify(linkPreviewOptions));
+            }
+
+            if (mediaType !== 'none') {
+                if (mediaFile) formData.append('photo', mediaFile);
+                else if (mediaUrl) formData.append('photo', mediaUrl);
+                else if (mediaFileId) formData.append('photo', mediaFileId);
+
+                if (message) {
+                    formData.append('caption', message);
+                }
+
+                // Add show_caption_above_media for media messages
+                if (showCaptionAboveMedia) {
+                    formData.append('show_caption_above_media', 'true');
+                }
+            } else {
+                formData.append('text', message);
+            }
+
+            const response = await fetch(url, { method: 'POST', body: formData, signal });
+            const data = await response.json();
+            if (!data.ok) throw new Error(data.description || 'Unknown API error');
+            return data;
+        }
+
+        // --- BROADCAST CONTROL ---
+
+        async function startBroadcast(isTest = false) {
+            const replyMarkupRaw = UIElements.replyMarkupInput.value.trim();
             let replyMarkup = null;
-            if (UI.replyMarkupInput.value.trim()) {
-                try { replyMarkup = JSON.parse(UI.replyMarkupInput.value); }
-                catch (e) { return alert('Invalid JSON: ' + e.message); }
+            if (replyMarkupRaw) {
+                try {
+                    replyMarkup = JSON.parse(replyMarkupRaw);
+                } catch (e) {
+                    alert(`Invalid JSON in Reply Markup field: ${e.message}`);
+                    return;
+                }
             }
 
+            // Build link preview options
             let linkPreviewOptions = null;
-            if (document.getElementById('disableLinkPreview').checked) linkPreviewOptions = { is_disabled: true };
-            else if (document.getElementById('preferLargeMedia').checked || document.getElementById('showAboveText').checked) {
+            if (UIElements.disableLinkPreview.checked) {
+                linkPreviewOptions = { is_disabled: true };
+            } else if (UIElements.preferLargeMedia.checked || UIElements.showAboveText.checked) {
                 linkPreviewOptions = {};
-                if (document.getElementById('preferLargeMedia').checked) linkPreviewOptions.prefer_large_media = true;
-                if (document.getElementById('showAboveText').checked) linkPreviewOptions.show_above_text = true;
+                if (UIElements.preferLargeMedia.checked) {
+                    linkPreviewOptions.prefer_large_media = true;
+                }
+                if (UIElements.showAboveText.checked) {
+                    linkPreviewOptions.show_above_text = true;
+                }
             }
 
-            const data = {
-                token, message, mediaType: state.mediaType,
-                mediaFile: state.mediaFile, mediaUrl: UI.mediaUrlInput.value,
+            const broadcastData = {
+                token: UIElements.botToken.value,
+                message: UIElements.messageInput.value, // Raw markdown - sent as-is
                 disableNotification: document.getElementById('disableNotification').checked,
                 protectContent: document.getElementById('protectContent').checked,
-                replyMarkup, linkPreviewOptions
+                replyToMessageId: UIElements.replyToInput.value.trim(),
+                mediaType: state.mediaType,
+                mediaFile: state.mediaFile,
+                mediaUrl: UIElements.mediaUrlInput.value,
+                mediaFileId: document.getElementById('mediaFileIdInput').value,
+                replyMarkup: replyMarkup,
+                linkPreviewOptions: linkPreviewOptions,
+                showCaptionAboveMedia: UIElements.showCaptionAboveMedia.checked
             };
 
-            const recipients = isTest ? [testRecipient] : state.validatedRecipients;
-            if (!isTest && recipients.length > 50 && !confirm(`Send to ${recipients.length} recipients?`)) return;
+            // --- Validation ---
+            if (!state.tokenValidated || !broadcastData.token) {
+                alert('Bot Token Required\n\nPlease enter and validate your bot token in the "Bot Setup" tab before sending messages.');
+                return;
+            }
+            if (!isTest && state.validatedRecipients.length === 0) {
+                alert('No Recipients\n\nPlease add at least one valid recipient ID in the "Recipients" tab.');
+                return;
+            }
+            if (!broadcastData.message && broadcastData.mediaType === 'none') {
+                alert('Empty Message\n\nPlease enter a message or add media before sending.\n\nNote: Media can be sent without a caption, but text messages cannot be empty.');
+                return;
+            }
 
+            // Check character length
+            const limit = broadcastData.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
+            const charCount = broadcastData.message.length;
+            if (charCount > limit) {
+                const messageType = broadcastData.mediaType !== 'none' ? 'caption' : 'message';
+                alert(`Message Too Long\n\nYour ${messageType} exceeds the ${limit} character limit.\n\nCurrent length: ${charCount} characters\nOver by: ${charCount - limit} characters\n\nPlease shorten your message.`);
+                return;
+            }
+
+            // Validate media if present
+            if (broadcastData.mediaType === 'upload' && !broadcastData.mediaFile) {
+                alert('No File Selected\n\nYou selected "Upload" media type but haven\'t chosen a file.\n\nPlease select a file or change media type to "No Media".');
+                return;
+            }
+            if (broadcastData.mediaType === 'url' && !broadcastData.mediaUrl) {
+                alert('No URL Provided\n\nYou selected "URL" media type but haven\'t entered a URL.\n\nPlease enter a valid image URL or change media type to "No Media".');
+                return;
+            }
+            if (broadcastData.mediaType === 'fileId' && !broadcastData.mediaFileId) {
+                alert('No File ID Provided\n\nYou selected "File ID" media type but haven\'t entered a file ID.\n\nPlease enter a valid Telegram file ID or change media type to "No Media".');
+                return;
+            }
+
+            // Get test recipient from localStorage
+            const testRecipientId = localStorage.getItem(STORAGE_KEYS.TEST_RECIPIENT);
+            if (isTest && !testRecipientId) {
+                const newTestId = prompt('Enter your Telegram User ID for test messages:\n\n(This will be saved for future use)');
+                if (!newTestId || !/^-?\d+$/.test(newTestId.trim())) {
+                    alert('Invalid User ID. Please enter a valid numeric Telegram User ID.');
+                    return;
+                }
+                localStorage.setItem(STORAGE_KEYS.TEST_RECIPIENT, newTestId.trim());
+            }
+
+            const recipientsToSend = isTest ? [localStorage.getItem(STORAGE_KEYS.TEST_RECIPIENT)] : state.validatedRecipients;
+
+            if (!isTest && recipientsToSend.length > 50) {
+                if (!confirm(`You're about to send to ${recipientsToSend.length} recipients. This will take approximately ${state.estimatedTime} seconds. Continue?`)) return;
+            }
+
+            // --- Start Process ---
             state.broadcasting = true;
             state.paused = false;
             state.pauseFlag = false;
             state.progress = 0;
             state.results = { success: 0, failed: 0, errors: [] };
             state.abortController = new AbortController();
+
             updateBroadcastUI();
 
-            for (let i = 0; i < recipients.length; i++) {
+            const batchSize = 30;
+            const delayBetweenBatches = 1000;
+
+            for (let i = 0; i < recipientsToSend.length; i++) {
                 if (state.pauseFlag) {
                     state.paused = true;
                     updateBroadcastUI();
-                    await new Promise(r => { const c = setInterval(() => { if (!state.pauseFlag) { clearInterval(c); state.paused = false; updateBroadcastUI(); r(); }}, 100); });
+                    await new Promise(resolve => {
+                        const checkPause = setInterval(() => {
+                            if (!state.pauseFlag) {
+                                clearInterval(checkPause);
+                                state.paused = false;
+                                updateBroadcastUI();
+                                resolve();
+                            }
+                        }, 100);
+                    });
                 }
+
                 if (state.abortController.signal.aborted) break;
+
+                const recipient = recipientsToSend[i];
                 try {
-                    await sendMessage(recipients[i], data, state.abortController.signal);
+                    await sendMessage(recipient, state.abortController.signal, broadcastData);
                     state.results.success++;
-                } catch (e) {
+                } catch (error) {
                     state.results.failed++;
-                    state.results.errors.push({ recipient: recipients[i], error: e.message });
-                    if (e.message.includes('Too Many Requests')) {
-                        await new Promise(r => setTimeout(r, 5000));
-                        i--;
+                    state.results.errors.push({ recipient, error: error.message });
+                    if (error.message.includes('Too Many Requests')) {
+                        const retryAfter = parseInt(error.message.match(/\d+/)?.[0] || '5');
+                        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+                        i--; // Retry
                         continue;
                     }
                 }
-                state.progress = ((i + 1) / recipients.length) * 100;
+
+                state.progress = ((i + 1) / recipientsToSend.length) * 100;
                 updateProgress();
-                if ((i + 1) % 30 === 0 && i < recipients.length - 1) await new Promise(r => setTimeout(r, 1000));
+
+                if ((i + 1) % batchSize === 0 && i < recipientsToSend.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+                }
             }
 
             state.broadcasting = false;
+            state.paused = false;
             updateBroadcastUI();
             showResults();
-            if (isTest) alert(state.results.success ? 'Test sent!' : `Failed: ${state.results.errors[0]?.error}`);
+
+            // Show completion messages
+            if (isTest) {
+                if (state.results.success > 0) {
+                    alert('Test Message Sent!\n\nYour test message was delivered successfully.');
+                }
+                if (state.results.failed > 0) {
+                    alert(`Test Message Failed\n\nError: ${state.results.errors[0].error}\n\nPlease check your bot token and message format.`);
+                }
+            } else {
+                const total = state.results.success + state.results.failed;
+                const successRate = total > 0 ? ((state.results.success / total) * 100).toFixed(1) : 0;
+
+                if (state.results.failed === 0) {
+                    alert(`Broadcast Complete!\n\n${state.results.success} messages sent successfully.\n\nSuccess rate: 100%`);
+                } else {
+                    alert(`Broadcast Complete\n\nSuccessful: ${state.results.success}\nFailed: ${state.results.failed}\nSuccess rate: ${successRate}%\n\nCheck the results section for details on failed messages.`);
+                }
+            }
         }
 
-        function togglePause() { state.pauseFlag = !state.pauseFlag; updateBroadcastUI(); }
-        function stopBroadcast() { state.abortController?.abort(); state.broadcasting = false; updateBroadcastUI(); }
+        function togglePause() {
+            state.pauseFlag = !state.pauseFlag;
+            updateBroadcastUI();
+        }
+
+        function stopBroadcast() {
+            if (state.abortController) state.abortController.abort();
+            state.broadcasting = false;
+            state.paused = false;
+            updateBroadcastUI();
+        }
 
         function updateBroadcastUI() {
-            UI.testBtn.disabled = state.broadcasting;
-            UI.broadcastBtn.disabled = state.broadcasting;
-            document.getElementById('pauseBtn').classList.toggle('hidden', !state.broadcasting || state.paused);
-            document.getElementById('resumeBtn').classList.toggle('hidden', !state.broadcasting || !state.paused);
-            document.getElementById('stopBtn').classList.toggle('hidden', !state.broadcasting);
-            document.getElementById('progressWrapper').classList.toggle('hidden', !state.broadcasting);
-            document.getElementById('pausedText').classList.toggle('hidden', !state.paused);
+            const { broadcasting, paused } = state;
+            UIElements.testBtn.disabled = broadcasting;
+            UIElements.broadcastBtn.disabled = broadcasting;
+            document.getElementById('pauseBtn').classList.toggle('hidden', !broadcasting || paused);
+            document.getElementById('resumeBtn').classList.toggle('hidden', !broadcasting || !paused);
+            document.getElementById('stopBtn').classList.toggle('hidden', !broadcasting);
+            document.getElementById('progressWrapper').classList.toggle('hidden', !broadcasting);
+            document.getElementById('pausedText').classList.toggle('hidden', !paused);
         }
 
         function updateProgress() {
-            document.getElementById('progressFill').style.width = state.progress + '%';
+            document.getElementById('progressFill').style.width = `${state.progress}%`;
             document.getElementById('progressText').textContent = Math.round(state.progress);
         }
 
+        // --- RESULTS & UTILITIES ---
+
         function showResults() {
-            if (!state.results.success && !state.results.failed) return;
-            document.getElementById('resultsWrapper').classList.remove('hidden');
-            document.getElementById('successCount').textContent = state.results.success;
-            document.getElementById('failedCount').textContent = state.results.failed;
-            const total = state.results.success + state.results.failed;
-            document.getElementById('successRate').textContent = total ? ((state.results.success / total) * 100).toFixed(1) : 0;
-            const errSec = document.getElementById('errorSection');
-            if (state.results.errors.length) {
-                errSec.classList.remove('hidden');
-                document.getElementById('errorList').innerHTML = state.results.errors.map(e => `<div class="error-item"><b>${e.recipient}:</b> ${e.error}</div>`).join('');
-            } else errSec.classList.add('hidden');
+            if (state.results.success > 0 || state.results.failed > 0) {
+                document.getElementById('resultsWrapper').classList.remove('hidden');
+                document.getElementById('successCount').textContent = state.results.success;
+                document.getElementById('failedCount').textContent = state.results.failed;
+
+                const total = state.results.success + state.results.failed;
+                const successRate = total > 0 ? ((state.results.success / total) * 100).toFixed(1) : 0;
+                document.getElementById('successRate').textContent = successRate;
+
+                const errorSection = document.getElementById('errorSection');
+                if (state.results.errors.length > 0) {
+                    errorSection.classList.remove('hidden');
+                    document.getElementById('errorList').innerHTML = state.results.errors
+                        .map(err => `<div class="error-item"><strong>${err.recipient}:</strong> ${err.error}</div>`)
+                        .join('');
+                } else {
+                    errorSection.classList.add('hidden');
+                }
+            }
         }
 
         function copyFailedIds() {
-            navigator.clipboard.writeText(state.results.errors.map(e => e.recipient).join(', ')).then(() => alert('Copied!'));
+            const failedIds = state.results.errors.map(e => e.recipient).join(', ');
+            navigator.clipboard.writeText(failedIds).then(() => alert('Failed IDs copied to clipboard!'));
+        }
+
+        function downloadResults() {
+            const successfulRecipients = new Set(state.validatedRecipients.filter(r => !state.results.errors.some(e => e.recipient === r)));
+            const csvRows = [
+                ['Recipient', 'Status', 'Error'],
+                ...state.results.errors.map(e => [e.recipient, 'Failed', `"${e.error}"`]),
+                ...Array.from(successfulRecipients).map(r => [r, 'Success', ''])
+            ];
+            const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
+
+            const link = document.createElement('a');
+            link.setAttribute('href', encodeURI(csvContent));
+            link.setAttribute('download', `broadcast-results-${new Date().toISOString()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         function clearAll() {
-            if (!confirm('Clear all?')) return;
-            UI.messageInput.value = '';
-            UI.recipientsInput.value = '';
-            UI.mediaUrlInput.value = '';
-            UI.replyMarkupInput.value = '';
-            document.getElementById('fileInput').value = '';
-            state.mediaFile = null;
-            document.getElementById('selectedFile').textContent = '';
-            parseRecipients();
-            updateCharCounter();
-            document.getElementById('resultsWrapper').classList.add('hidden');
+            if (confirm('Are you sure you want to clear the message and recipient list?')) {
+                UIElements.messageInput.value = '';
+                UIElements.recipientsInput.value = '';
+                UIElements.replyToInput.value = '';
+                UIElements.mediaUrlInput.value = '';
+                UIElements.replyMarkupInput.value = '';
+                document.getElementById('mediaFileIdInput').value = '';
+                document.getElementById('fileInput').value = '';
+                state.mediaFile = null;
+                document.getElementById('selectedFile').textContent = '';
+
+                UIElements.teamMessageCheckbox.checked = false;
+                UIElements.disableLinkPreview.checked = false;
+                UIElements.preferLargeMedia.checked = false;
+                UIElements.showAboveText.checked = false;
+                UIElements.showCaptionAboveMedia.checked = false;
+                UIElements.teamMessageCheckbox.dispatchEvent(new Event('change'));
+
+                parseRecipients();
+                updateCharCounter();
+
+                document.getElementById('resultsWrapper').classList.add('hidden');
+            }
+        }
+
+        function showPreview() {
+            const previewText = document.getElementById('previewText');
+            const messageText = UIElements.messageInput.value;
+
+            // Show raw markdown that will be sent
+            if (!messageText) {
+                previewText.innerHTML = '<em style="color: #9ca3af;">[Empty message]</em>';
+            } else {
+                // Show the raw markdown
+                const pre = document.createElement('pre');
+                pre.style.cssText = 'background: #f3f4f6; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 13px; margin: 0;';
+                pre.textContent = messageText;
+                previewText.innerHTML = '';
+                previewText.appendChild(pre);
+
+                // Add rendered preview
+                const renderedDiv = document.createElement('div');
+                renderedDiv.style.cssText = 'margin-top: 12px; padding: 12px; background: #fff; border: 1px solid #e5e7eb; border-radius: 6px;';
+                renderedDiv.innerHTML = '<strong style="font-size: 12px; color: #6b7280;">Rendered preview (approximate):</strong><div style="margin-top: 8px;">' + renderMarkdownPreview(messageText) + '</div>';
+                previewText.appendChild(renderedDiv);
+
+                // Add info
+                const modeInfo = document.createElement('div');
+                modeInfo.style.cssText = 'margin-top: 8px; padding: 6px; background: #e0f2fe; border-radius: 4px; font-size: 12px; color: #0369a1;';
+                modeInfo.textContent = `Format: Legacy Markdown • ${messageText.length} characters`;
+                previewText.appendChild(modeInfo);
+            }
+
+            document.getElementById('previewMedia').classList.toggle('hidden', state.mediaType === 'none');
+
+            const previewMarkupContainer = document.getElementById('previewReplyMarkup');
+            previewMarkupContainer.innerHTML = '';
+            const replyMarkupRaw = UIElements.replyMarkupInput.value.trim();
+            if (replyMarkupRaw) {
+                try {
+                    const markup = JSON.parse(replyMarkupRaw);
+                    if (markup.inline_keyboard && Array.isArray(markup.inline_keyboard)) {
+                        const keyboardPreview = document.createElement('div');
+                        keyboardPreview.style.marginTop = '10px';
+                        markup.inline_keyboard.forEach(row => {
+                            const rowDiv = document.createElement('div');
+                            rowDiv.style.display = 'flex';
+                            rowDiv.style.gap = '5px';
+                            rowDiv.style.marginBottom = '5px';
+                            row.forEach(button => {
+                                const btn = document.createElement('button');
+                                btn.textContent = button.text;
+                                btn.className = 'btn btn-secondary';
+                                btn.style.flex = '1';
+                                btn.disabled = true;
+                                rowDiv.appendChild(btn);
+                            });
+                            keyboardPreview.appendChild(rowDiv);
+                        });
+                        previewMarkupContainer.appendChild(keyboardPreview);
+                    }
+                } catch (e) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-text text-sm';
+                    errorDiv.textContent = 'Invalid Reply Markup JSON.';
+                    previewMarkupContainer.appendChild(errorDiv);
+                }
+            }
+
+            document.getElementById('previewModal').classList.add('show');
+        }
+
+        // Simple markdown to HTML renderer for preview (approximation)
+        function renderMarkdownPreview(text) {
+            let html = text
+                // Escape HTML
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                // Code blocks first
+                .replace(/```([\s\S]*?)```/g, '<pre style="background:#f3f4f6;padding:8px;border-radius:4px;overflow-x:auto;">$1</pre>')
+                // Inline code
+                .replace(/`([^`]+)`/g, '<code style="background:#f3f4f6;padding:2px 4px;border-radius:3px;">$1</code>')
+                // Bold
+                .replace(/\*([^*]+)\*/g, '<strong>$1</strong>')
+                // Italic
+                .replace(/_([^_]+)_/g, '<em>$1</em>')
+                // Links
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#667eea;">$1</a>')
+                // Newlines
+                .replace(/\n/g, '<br>');
+            return html;
+        }
+
+        function hidePreview() {
+            document.getElementById('previewModal').classList.remove('show');
+        }
+
+        function updateButtonStates() {
+            const text = UIElements.messageInput.value || '';
+            const limit = state.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
+            const charCount = text.length;
+
+            // Message is valid if not empty OR if media is present (captions are optional)
+            const messageValid = charCount > 0 || state.mediaType !== 'none';
+
+            const canBroadcast = state.tokenValidated &&
+                                 state.validatedRecipients.length > 0 &&
+                                 !state.broadcasting &&
+                                 messageValid &&
+                                 charCount <= limit;
+
+            const canTest = state.tokenValidated &&
+                            !state.broadcasting &&
+                            messageValid &&
+                            charCount <= limit;
+
+            UIElements.broadcastBtn.disabled = !canBroadcast;
+            UIElements.testBtn.disabled = !canTest;
         }
     </script>
 </body>

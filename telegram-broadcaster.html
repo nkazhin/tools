@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Broadcaster</title>
-    <meta name="description" content="Send formatted messages to multiple Telegram users with HTML formatting support">
+    <title>Telegram Broadcaster (HTML)</title>
+    <meta name="description" content="Send formatted messages to multiple Telegram users with HTML/MarkdownV2 formatting">
     <meta name="category" content="Telegram">
     <style>
         /* General Styling */
@@ -155,11 +155,6 @@
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
-        }
-
-        .btn-sm {
-            padding: 4px 8px;
-            font-size: 12px;
         }
 
         /* Toolbar */
@@ -331,44 +326,6 @@
             margin-bottom: 4px;
         }
 
-        /* Settings Panel */
-        .settings-panel {
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-
-        .settings-panel h3 {
-            margin: 0 0 12px;
-            font-size: 16px;
-            color: #92400e;
-        }
-
-        .settings-row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .settings-row:last-child {
-            margin-bottom: 0;
-        }
-
-        .settings-row .input {
-            flex: 1;
-        }
-
-        .stored-indicator {
-            font-size: 12px;
-            color: #10b981;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
         /* Tooltip */
         .tooltip {
             position: relative;
@@ -484,12 +441,12 @@
 <body>
     <div class="telegram-broadcast-tool">
         <header class="tool-header">
-            <h1>Telegram Broadcaster</h1>
+            <h1>Telegram Broadcast Tool</h1>
             <p>Send messages to multiple Telegram users efficiently</p>
             <details style="margin-top: 12px; cursor: pointer;">
                 <summary style="font-size: 13px; opacity: 0.9;">Quick Guide</summary>
                 <div style="margin-top: 8px; font-size: 12px; line-height: 1.6; opacity: 0.95;">
-                    <strong>1. Settings:</strong> Configure your bot token (stored in browser)<br>
+                    <strong>1. Bot Setup:</strong> Enter and validate your bot token<br>
                     <strong>2. Recipients:</strong> Add recipient IDs (comma-separated or one per line)<br>
                     <strong>3. Compose:</strong> Write your message with formatting<br>
                     <strong>4. Send:</strong> Use "Send Test" first, then "Start Broadcast"<br>
@@ -499,22 +456,6 @@
                 </div>
             </details>
         </header>
-
-        <!-- Settings Panel -->
-        <div class="settings-panel" id="settingsPanel">
-            <h3>⚙️ Settings</h3>
-            <div class="settings-row">
-                <input type="password" class="input" id="botTokenInput" placeholder="Enter Telegram Bot Token">
-                <button class="btn btn-sm" onclick="saveToken()">Save</button>
-                <button class="btn btn-sm btn-secondary" onclick="clearToken()">Clear</button>
-            </div>
-            <div id="tokenStatus" class="mt-8"></div>
-            <div class="settings-row mt-12">
-                <input type="text" class="input" id="testRecipientInput" placeholder="Test Recipient ID (your Telegram ID)">
-                <button class="btn btn-sm" onclick="saveTestRecipient()">Save</button>
-            </div>
-            <div id="testRecipientStatus" class="mt-8"></div>
-        </div>
 
         <!-- Mobile Tabs -->
         <div class="tabs mobile-only" id="mobileTabs">
@@ -526,6 +467,11 @@
                 <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span>Recipients</span>
                 <span class="badge" id="recipientsBadge" style="display: none;">0</span>
+            </button>
+            <button class="tab" data-tab="bot">
+                 <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 2v2"/><path d="M9 2v2"/></svg>
+                <span>Bot Setup</span>
+                <span class="status-badge warning" id="botStatusBadge">!</span>
             </button>
             <button class="tab" data-tab="send">
                 <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -571,7 +517,7 @@
                         </button>
                     </div>
 
-                    <div class="textarea" id="messageInput" contenteditable="true" data-placeholder="Enter your message here..." style="min-height: 150px; border: 1px solid #d1d5db; border-top: none; border-radius: 0 0 6px 6px; padding: 12px;"></div>
+                    <div class="textarea" id="messageInput" contenteditable="true" data-placeholder="Enter your message here..."></div>
                     <div class="char-counter" id="charCounter">0 / 4096 characters</div>
                 </div>
 
@@ -590,11 +536,24 @@
                 </div>
 
                 <div class="input-group">
+                    <label class="label" for="replyToInput">Reply to (Optional)</label>
+                    <input class="input" id="replyToInput" placeholder="Message ID">
+                </div>
+
+                <div class="input-group">
+                    <label class="flex text-sm">
+                        <input type="checkbox" id="teamMessageCheckbox">
+                        Team message
+                    </label>
+                </div>
+
+                <div class="input-group">
                     <label class="label">Media (Optional)</label>
                     <div class="media-tabs">
                         <button class="media-tab active" onclick="setMediaType('none', this)">No Media</button>
                         <button class="media-tab" onclick="setMediaType('upload', this)">Upload</button>
                         <button class="media-tab" onclick="setMediaType('url', this)">URL</button>
+                        <button class="media-tab" onclick="setMediaType('fileId', this)">File ID</button>
                     </div>
 
                     <div id="mediaUpload" class="hidden">
@@ -609,13 +568,33 @@
                     <div id="mediaUrl" class="hidden">
                         <input class="input" id="mediaUrlInput" placeholder="https://example.com/image.jpg">
                     </div>
+
+                    <div id="mediaFileId" class="hidden">
+                        <input class="input" id="mediaFileIdInput" placeholder="Enter Telegram file ID">
+                    </div>
+
+                    <!-- Media Options (shown when media is selected) -->
+                    <div id="mediaOptions" class="hidden mt-12">
+                        <label class="label">Media Options</label>
+                        <div class="checkbox-group">
+                            <label class="flex text-sm">
+                                <input type="checkbox" id="showCaptionAboveMedia">
+                                Show caption above media
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="input-group">
                     <label class="label" for="replyMarkupInput">Reply Markup (Optional, JSON)</label>
-                    <textarea class="textarea" id="replyMarkupInput" rows="6" placeholder='{
+                    <textarea class="textarea" id="replyMarkupInput" rows="8" placeholder='{
   "inline_keyboard": [
-    [{"text": "Button", "url": "https://example.com"}]
+    [
+      {
+        "text": "Button Text",
+        "url": "https://example.com"
+      }
+    ]
   ]
 }'></textarea>
                 </div>
@@ -638,12 +617,12 @@
                 <div class="input-group">
                     <label class="label" for="recipientsInput">
                         Recipient IDs
-                        <span class="tooltip" data-tooltip="Enter comma-separated IDs or one per line">
+                        <span class="tooltip" data-tooltip="Enter comma-separated IDs, one per line, or JSON array">
                             <svg class="icon-16" style="vertical-align: middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                         </span>
                     </label>
                     <textarea class="textarea" id="recipientsInput" rows="6"
-                        placeholder="123456789, 987654321&#10;555555555" style="font-family: monospace;"></textarea>
+                        placeholder="123456789, 987654321&#10;555555555&#10;or&#10;[123456789, 987654321, 555555555]" style="font-family: monospace;"></textarea>
 
                     <div class="recipient-stats mt-8 flex" style="gap: 16px; font-size: 14px;">
                         <div><span class="success-text">Valid: <span id="validCount">0</span></span></div>
@@ -658,11 +637,36 @@
                 </div>
 
                 <div class="input-group">
-                    <label class="flex text-sm"><input type="checkbox" id="disableNotification"> Send silently</label>
+                    <label class="flex text-sm"><input type="checkbox" id="disableNotification"> Send silently (disable notification)</label>
                 </div>
 
                 <div class="input-group">
-                    <label class="flex text-sm"><input type="checkbox" id="protectContent"> Protect content</label>
+                    <label class="flex text-sm"><input type="checkbox" id="protectContent"> Protect content (disable forwarding)</label>
+                </div>
+            </section>
+
+            <!-- Bot Configuration -->
+            <section class="card full-width tab-content" id="bot-tab">
+                <h2>
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 2v2"/><path d="M9 2v2"/></svg>
+                    Bot Configuration
+                </h2>
+
+                <div class="input-group">
+                    <label class="label" for="botToken">Bot Token</label>
+                    <div class="flex">
+                        <input type="password" class="input" id="botToken" placeholder="Enter your bot token" style="flex: 1;">
+                        <button class="btn" onclick="validateBotToken()">Validate</button>
+                    </div>
+
+                    <div id="validationError" class="error-text mt-8 hidden"></div>
+
+                    <div id="botInfo" class="bot-info hidden">
+                        <div class="bot-info-item"><strong>Bot Name:</strong> <span id="botName"></span></div>
+                        <div class="bot-info-item"><strong>Username:</strong> @<span id="botUsername"></span></div>
+                        <div class="bot-info-item"><strong>Bot ID:</strong> <span id="botId"></span></div>
+                        <div id="botDescriptionWrapper" class="bot-info-item hidden"><strong>Description:</strong> <span id="botDescription"></span></div>
+                    </div>
                 </div>
             </section>
 
@@ -675,7 +679,7 @@
 
                 <div class="flex flex-wrap">
                     <button class="btn btn-secondary" onclick="startBroadcast(true)" id="testBtn" disabled>
-                        <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32-17.32"/></svg>
+                        <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32-17.32"/><path d="m12 20 4-4"/></svg>
                         Send Test
                     </button>
 
@@ -684,11 +688,25 @@
                         Start Broadcast
                     </button>
 
-                    <button class="btn btn-secondary hidden" id="pauseBtn" onclick="togglePause()">Pause</button>
-                    <button class="btn btn-secondary hidden" id="resumeBtn" onclick="togglePause()">Resume</button>
-                    <button class="btn btn-danger hidden" id="stopBtn" onclick="stopBroadcast()">Stop</button>
+                    <button class="btn btn-secondary hidden" id="pauseBtn" onclick="togglePause()">
+                        <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/></svg>
+                        Pause
+                    </button>
 
-                    <button class="btn btn-danger ml-auto" onclick="clearAll()">Clear All</button>
+                    <button class="btn btn-secondary hidden" id="resumeBtn" onclick="togglePause()">
+                        <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        Resume
+                    </button>
+
+                    <button class="btn btn-danger hidden" id="stopBtn" onclick="stopBroadcast()">
+                        <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                        Stop
+                    </button>
+
+                    <button class="btn btn-danger ml-auto" onclick="clearAll()">
+                        <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        Clear All
+                    </button>
                 </div>
 
                 <div id="progressWrapper" class="hidden mt-16">
@@ -701,15 +719,27 @@
                 <div id="resultsWrapper" class="hidden mt-20">
                     <h3 style="font-size: 16px; margin-bottom: 12px;">Results</h3>
                     <div class="flex mb-12" style="gap: 24px;">
-                        <div><span class="success-text">Success: <span id="successCount">0</span></span></div>
-                        <div><span class="error-text">Failed: <span id="failedCount">0</span></span></div>
-                        <div><span style="color: #6b7280;">Rate: <span id="successRate">0</span>%</span></div>
+                        <div>
+                            <svg class="icon success-text" style="vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            <span class="success-text">Success: <span id="successCount">0</span></span>
+                        </div>
+                        <div>
+                           <svg class="icon error-text" style="vertical-align: middle; margin-right: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                            <span class="error-text">Failed: <span id="failedCount">0</span></span>
+                        </div>
+                        <div><span style="color: #6b7280;">Success Rate: <span id="successRate">0</span>%</span></div>
                     </div>
 
                     <div id="errorSection" class="hidden">
                         <div class="flex mb-8" style="gap: 8px;">
-                            <button class="btn btn-secondary btn-sm" onclick="copyFailedIds()">Copy Failed IDs</button>
-                            <button class="btn btn-secondary btn-sm" onclick="downloadResults()">Download Results</button>
+                            <button class="btn btn-secondary text-sm" style="padding: 4px 8px;" onclick="copyFailedIds()">
+                               <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                Copy Failed IDs
+                            </button>
+                            <button class="btn btn-secondary text-sm" style="padding: 4px 8px;" onclick="downloadResults()">
+                                <svg class="icon-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                                Download Results
+                            </button>
                         </div>
                         <div class="error-list"><strong>Errors:</strong><div id="errorList"></div></div>
                     </div>
@@ -722,7 +752,10 @@
             <div class="modal-content" onclick="event.stopPropagation()">
                 <h3 style="margin-top: 0;">Message Preview</h3>
                 <div class="preview-box">
-                    <div id="previewMedia" class="image-placeholder hidden">[Image]</div>
+                    <div id="previewMedia" class="image-placeholder hidden">
+                        <svg class="icon" style="width: 32px; height: 32px; margin: 0 auto; opacity: 0.5;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <div class="text-sm mt-8" style="color: #6b7280;">[Image will appear here]</div>
+                    </div>
                     <div id="previewText" style="white-space: pre-wrap; word-break: break-word;"></div>
                     <div id="previewReplyMarkup" class="mt-12"></div>
                 </div>
@@ -736,15 +769,16 @@
     <script>
         // Storage keys
         const STORAGE_KEYS = {
-            BOT_TOKEN: 'telegram_broadcaster_bot_token',
-            TEST_RECIPIENT: 'telegram_broadcaster_test_recipient'
+            BOT_TOKEN: 'telegram_broadcaster_html_bot_token',
+            TEST_RECIPIENT: 'telegram_broadcaster_html_test_recipient'
         };
 
         // Constants
         const TEXT_LIMIT = 4096;
         const CAPTION_LIMIT = 1024;
+        const TEAM_IMAGE_URL = 'https://cdn.etopodtema.com/Telegram%20Images/SupportMessage3.png';
 
-        // Global state
+        // Global state for managing the broadcast process
         const state = {
             botInfo: null,
             validatedRecipients: [],
@@ -761,34 +795,41 @@
             mediaFile: null
         };
 
-        // DOM references
+        // DOM element references
         const UIElements = {
             messageInput: document.getElementById('messageInput'),
             recipientsInput: document.getElementById('recipientsInput'),
-            botTokenInput: document.getElementById('botTokenInput'),
-            testRecipientInput: document.getElementById('testRecipientInput'),
+            botToken: document.getElementById('botToken'),
             testBtn: document.getElementById('testBtn'),
             broadcastBtn: document.getElementById('broadcastBtn'),
+            replyToInput: document.getElementById('replyToInput'),
+            teamMessageCheckbox: document.getElementById('teamMessageCheckbox'),
             mediaUrlInput: document.getElementById('mediaUrlInput'),
             replyMarkupInput: document.getElementById('replyMarkupInput'),
             preferLargeMedia: document.getElementById('preferLargeMedia'),
-            showAboveText: document.getElementById('showAboveText')
+            showAboveText: document.getElementById('showAboveText'),
+            showCaptionAboveMedia: document.getElementById('showCaptionAboveMedia')
         };
 
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', function() {
-            // Load saved settings
-            loadSettings();
+            // Load saved bot token from localStorage
+            const savedToken = localStorage.getItem(STORAGE_KEYS.BOT_TOKEN);
+            if (savedToken) {
+                UIElements.botToken.value = savedToken;
+                validateBotToken(); // Auto-validate if token exists
+            }
 
             // Set up event listeners
             UIElements.messageInput.addEventListener('input', handleMessageInput);
             UIElements.messageInput.addEventListener('paste', handlePaste);
             UIElements.messageInput.addEventListener('keydown', handleKeyDown);
             UIElements.recipientsInput.addEventListener('input', parseRecipients);
+            UIElements.teamMessageCheckbox.addEventListener('change', handleTeamMessageCheck);
             document.getElementById('fileInput').addEventListener('change', handleFileSelect);
             document.getElementById('parseMode').addEventListener('change', updateCharCounter);
 
-            // Toolbar listeners
+            // Toolbar listeners - simple like V1
             document.querySelectorAll('.toolbar-btn').forEach(button => {
                 button.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -818,100 +859,8 @@
             updatePlaceholder();
         });
 
-        // --- SETTINGS MANAGEMENT ---
-        function loadSettings() {
-            const savedToken = localStorage.getItem(STORAGE_KEYS.BOT_TOKEN);
-            const savedTestRecipient = localStorage.getItem(STORAGE_KEYS.TEST_RECIPIENT);
+        // --- EDITOR IMPROVEMENTS ---
 
-            if (savedToken) {
-                UIElements.botTokenInput.value = savedToken;
-                validateBotToken(savedToken);
-            } else {
-                updateTokenStatus(false, 'No bot token configured. Enter your token above.');
-            }
-
-            if (savedTestRecipient) {
-                UIElements.testRecipientInput.value = savedTestRecipient;
-                updateTestRecipientStatus(true);
-            } else {
-                updateTestRecipientStatus(false, 'No test recipient configured.');
-            }
-        }
-
-        function saveToken() {
-            const token = UIElements.botTokenInput.value.trim();
-            if (!token) {
-                alert('Please enter a bot token');
-                return;
-            }
-            localStorage.setItem(STORAGE_KEYS.BOT_TOKEN, token);
-            validateBotToken(token);
-        }
-
-        function clearToken() {
-            if (confirm('Remove saved bot token?')) {
-                localStorage.removeItem(STORAGE_KEYS.BOT_TOKEN);
-                UIElements.botTokenInput.value = '';
-                state.tokenValidated = false;
-                state.botInfo = null;
-                updateTokenStatus(false, 'Bot token removed.');
-                updateButtonStates();
-            }
-        }
-
-        function saveTestRecipient() {
-            const recipient = UIElements.testRecipientInput.value.trim();
-            if (!recipient || !/^-?\d+$/.test(recipient)) {
-                alert('Please enter a valid Telegram user ID (numbers only)');
-                return;
-            }
-            localStorage.setItem(STORAGE_KEYS.TEST_RECIPIENT, recipient);
-            updateTestRecipientStatus(true);
-        }
-
-        function updateTokenStatus(valid, message) {
-            const status = document.getElementById('tokenStatus');
-            if (valid && state.botInfo) {
-                status.innerHTML = `<span class="stored-indicator">✓ Connected: @${state.botInfo.username}</span>`;
-            } else {
-                status.innerHTML = `<span class="text-sm" style="color: ${valid ? '#10b981' : '#6b7280'};">${message}</span>`;
-            }
-        }
-
-        function updateTestRecipientStatus(saved, message) {
-            const status = document.getElementById('testRecipientStatus');
-            if (saved) {
-                status.innerHTML = `<span class="stored-indicator">✓ Test recipient saved</span>`;
-            } else {
-                status.innerHTML = `<span class="text-sm" style="color: #6b7280;">${message || ''}</span>`;
-            }
-        }
-
-        async function validateBotToken(token) {
-            if (!token) return;
-
-            try {
-                const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
-                const data = await response.json();
-
-                if (data.ok) {
-                    state.botInfo = data.result;
-                    state.tokenValidated = true;
-                    updateTokenStatus(true);
-                } else {
-                    state.tokenValidated = false;
-                    state.botInfo = null;
-                    updateTokenStatus(false, `Invalid token: ${data.description}`);
-                }
-            } catch (error) {
-                state.tokenValidated = false;
-                state.botInfo = null;
-                updateTokenStatus(false, 'Network error. Check your connection.');
-            }
-            updateButtonStates();
-        }
-
-        // --- EDITOR FUNCTIONS ---
         function handleMessageInput() {
             updateCharCounter();
             updatePlaceholder();
@@ -924,20 +873,36 @@
         }
 
         function handleKeyDown(e) {
+            // Keyboard shortcuts
             if (e.ctrlKey || e.metaKey) {
                 switch(e.key.toLowerCase()) {
-                    case 'b': e.preventDefault(); document.execCommand('bold'); break;
-                    case 'i': e.preventDefault(); document.execCommand('italic'); break;
-                    case 'u': e.preventDefault(); document.execCommand('underline'); break;
+                    case 'b':
+                        e.preventDefault();
+                        document.execCommand('bold');
+                        break;
+                    case 'i':
+                        e.preventDefault();
+                        document.execCommand('italic');
+                        break;
+                    case 'u':
+                        e.preventDefault();
+                        document.execCommand('underline');
+                        break;
                 }
             }
         }
 
         function updatePlaceholder() {
             const isEmpty = UIElements.messageInput.textContent.trim() === '';
-            UIElements.messageInput.setAttribute('data-placeholder',
-                isEmpty ? (state.mediaType !== 'none' ? 'Enter caption (optional)' : 'Enter your message here...') : '');
+            if (isEmpty && !UIElements.messageInput.querySelector('br')) {
+                UIElements.messageInput.setAttribute('data-placeholder',
+                    state.mediaType !== 'none' ? 'Enter caption (optional)' : 'Enter your message here...');
+            } else {
+                UIElements.messageInput.removeAttribute('data-placeholder');
+            }
         }
+
+        // --- UI & EVENT HANDLERS ---
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
@@ -951,7 +916,24 @@
             document.getElementById('selectedFile').textContent = state.mediaFile ? `Selected: ${state.mediaFile.name}` : '';
         }
 
+        function handleTeamMessageCheck(e) {
+            const isChecked = e.target.checked;
+            const urlTabButton = document.querySelector('.media-tab[onclick*="\'url\'"]');
+
+            if (isChecked) {
+                if (state.mediaType !== 'url') {
+                    setMediaType('url', urlTabButton);
+                }
+                UIElements.mediaUrlInput.value = TEAM_IMAGE_URL;
+                UIElements.mediaUrlInput.disabled = true;
+            } else {
+                UIElements.mediaUrlInput.disabled = false;
+            }
+        }
+
         function updateCharCounter() {
+            // Simple character counting during typing (like V1)
+            // We'll do proper formatting when actually sending
             const plainText = UIElements.messageInput.textContent || '';
             const limit = state.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
             const charCount = plainText.length;
@@ -959,7 +941,15 @@
             const counter = document.getElementById('charCounter');
             counter.textContent = `${charCount} / ${limit} characters`;
             counter.classList.toggle('danger', charCount > limit);
-            counter.style.color = charCount > limit ? '#ef4444' : (charCount > limit * 0.9 ? '#f59e0b' : '#6b7280');
+
+            // Show warning if close to limit
+            if (charCount > limit * 0.9 && charCount <= limit) {
+                counter.style.color = '#f59e0b'; // Orange warning
+            } else if (charCount > limit) {
+                counter.style.color = '#ef4444'; // Red danger
+            } else {
+                counter.style.color = '#6b7280'; // Normal gray
+            }
 
             updateButtonStates();
         }
@@ -975,19 +965,31 @@
             }
 
             let ids = [];
+            let isJsonArray = false;
             try {
                 const parsed = JSON.parse(input);
-                if (Array.isArray(parsed)) ids = parsed.map(id => String(id).trim());
+                if (Array.isArray(parsed)) {
+                    ids = parsed.map(id => String(id).trim());
+                    isJsonArray = true;
+                }
             } catch {
+                // Not a valid JSON array
+            }
+
+            if (!isJsonArray) {
                 ids = input.replace(/[\[\]"']/g, '').split(/[,\s\n]+/).filter(id => id && id.length > 0);
             }
 
             const uniqueIds = [...new Set(ids)];
-            const valid = [], invalid = [];
+            const valid = [];
+            const invalid = [];
 
             uniqueIds.forEach(id => {
-                if (/^-?\d+$/.test(id) || /^@\w{5,}$/.test(id)) valid.push(id);
-                else invalid.push(id);
+                if (/^-?\d+$/.test(id) || /^@\w{5,}$/.test(id)) {
+                    valid.push(id);
+                } else {
+                    invalid.push(id);
+                }
             });
 
             state.validatedRecipients = valid;
@@ -1017,92 +1019,243 @@
             }
 
             const estimatedTimeWrapper = document.getElementById('estimatedTimeWrapper');
-            estimatedTimeWrapper.style.display = state.validatedRecipients.length > 0 ? 'block' : 'none';
-            document.getElementById('estimatedTime').textContent = state.estimatedTime;
+            if (state.validatedRecipients.length > 0) {
+                estimatedTimeWrapper.style.display = 'block';
+                document.getElementById('estimatedTime').textContent = state.estimatedTime;
+            } else {
+                estimatedTimeWrapper.style.display = 'none';
+            }
         }
 
         function setMediaType(type, element) {
+            if (type !== 'url' && UIElements.teamMessageCheckbox.checked) {
+                 UIElements.teamMessageCheckbox.checked = false;
+                 UIElements.mediaUrlInput.disabled = false;
+            }
+
             state.mediaType = type;
+
             document.querySelectorAll('.media-tab').forEach(tab => tab.classList.remove('active'));
             element.classList.add('active');
 
             document.getElementById('mediaUpload').classList.toggle('hidden', type !== 'upload');
             document.getElementById('mediaUrl').classList.toggle('hidden', type !== 'url');
+            document.getElementById('mediaFileId').classList.toggle('hidden', type !== 'fileId');
+
+            // Show/hide media options (caption above media checkbox)
+            document.getElementById('mediaOptions').classList.toggle('hidden', type === 'none');
 
             document.getElementById('messageLabel').textContent = type !== 'none' ? 'Caption' : 'Message';
             updatePlaceholder();
             updateCharCounter();
         }
 
-        // --- TEXT PROCESSING ---
+        // --- TEXT PROCESSING & FORMATTING ---
+
         function htmlToTelegram(html, mode) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
 
-            // Normalize tags
-            const replacements = { 'strong': 'b', 'em': 'i', 'ins': 'u', 'strike': 's', 'del': 's' };
-            tempDiv.querySelectorAll('*').forEach(el => {
-                const tag = el.tagName.toLowerCase();
-                if (replacements[tag]) {
-                    const newEl = document.createElement(replacements[tag]);
-                    while (el.firstChild) newEl.appendChild(el.firstChild);
-                    el.parentNode.replaceChild(newEl, el);
-                }
-            });
+            // Normalize the HTML structure
+            normalizeNode(tempDiv);
 
             let result;
             if (mode === 'HTML') {
                 result = tempDiv.innerHTML
                     .replace(/<br\s*\/?>/gi, '\n')
-                    .replace(/<\/div>/gi, '\n').replace(/<div>/gi, '')
-                    .replace(/<\/p>/gi, '\n').replace(/<p>/gi, '')
+                    .replace(/<\/div>/gi, '\n')
+                    .replace(/<div>/gi, '')
+                    .replace(/<\/p>/gi, '\n')
+                    .replace(/<p>/gi, '')
                     .trim();
             } else {
+                // MarkdownV2
                 result = nodeToMarkdownV2(tempDiv).trim();
             }
 
+            // Clean up HTML entities
+            result = decodeHTMLEntities(result);
+
+            return result;
+        }
+
+        function decodeHTMLEntities(text) {
             const textarea = document.createElement('textarea');
-            textarea.innerHTML = result;
+            textarea.innerHTML = text;
             return textarea.value;
+        }
+
+        function normalizeNode(node) {
+            // Replace <strong> with <b>, <em> with <i>, etc.
+            const replacements = {
+                'strong': 'b',
+                'em': 'i',
+                'ins': 'u',
+                'strike': 's',
+                'del': 's'
+            };
+
+            const elements = node.querySelectorAll('*');
+            elements.forEach(el => {
+                const tagName = el.tagName.toLowerCase();
+                if (replacements[tagName]) {
+                    const newEl = document.createElement(replacements[tagName]);
+                    while (el.firstChild) {
+                        newEl.appendChild(el.firstChild);
+                    }
+                    el.parentNode.replaceChild(newEl, el);
+                }
+            });
         }
 
         function nodeToMarkdownV2(node) {
             let result = '';
+
             for (const child of node.childNodes) {
                 if (child.nodeType === Node.TEXT_NODE) {
                     result += escapeMarkdownV2(child.textContent);
                 } else if (child.nodeType === Node.ELEMENT_NODE) {
-                    const tag = child.tagName.toLowerCase();
+                    const tagName = child.tagName.toLowerCase();
                     const content = nodeToMarkdownV2(child);
-                    switch (tag) {
-                        case 'b': result += `*${content}*`; break;
-                        case 'i': result += `_${content}_`; break;
-                        case 'u': result += `__${content}__`; break;
-                        case 's': result += `~${content}~`; break;
-                        case 'code': result += `\`${child.textContent}\``; break;
-                        case 'a': result += `[${content}](${escapeMarkdownV2(child.getAttribute('href') || '')})`; break;
-                        case 'br': result += '\n'; break;
-                        case 'div': case 'p': result += content + '\n'; break;
-                        default: result += content;
+
+                    switch (tagName) {
+                        case 'b':
+                            result += `*${content}*`;
+                            break;
+                        case 'i':
+                            result += `_${content}_`;
+                            break;
+                        case 'u':
+                            result += `__${content}__`;
+                            break;
+                        case 's':
+                            result += `~${content}~`;
+                            break;
+                        case 'code':
+                            result += `\`${child.textContent}\``;
+                            break;
+                        case 'pre':
+                            result += `\`\`\`\n${child.textContent}\n\`\`\``;
+                            break;
+                        case 'a':
+                            const url = escapeMarkdownV2(child.getAttribute('href') || '');
+                            result += `[${content}](${url})`;
+                            break;
+                        case 'br':
+                            result += '\n';
+                            break;
+                        case 'div':
+                        case 'p':
+                            result += content + '\n';
+                            break;
+                        default:
+                            result += content;
                     }
                 }
             }
+
             return result;
         }
 
         function escapeMarkdownV2(text) {
-            return ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
-                .reduce((t, c) => t.split(c).join('\\' + c), text);
+            const charsToEscape = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+            let escaped = text;
+            charsToEscape.forEach(char => {
+                escaped = escaped.split(char).join('\\' + char);
+            });
+            return escaped;
         }
 
         function getMessageText() {
             const parseMode = document.getElementById('parseMode').value;
-            return htmlToTelegram(UIElements.messageInput.innerHTML, parseMode);
+            const htmlContent = UIElements.messageInput.innerHTML;
+            return htmlToTelegram(htmlContent, parseMode);
         }
 
-        // --- API CALLS ---
+        // --- BOT & API LOGIC ---
+
+        async function validateBotToken() {
+            const token = UIElements.botToken.value.trim();
+            if (!token) {
+                showValidationError('Please enter a bot token');
+                return;
+            }
+            hideValidationError();
+
+            // Show loading state
+            const validateBtn = document.querySelector('.btn[onclick="validateBotToken()"]');
+            const originalText = validateBtn.textContent;
+            validateBtn.disabled = true;
+            validateBtn.textContent = 'Validating...';
+
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+                const data = await response.json();
+
+                if (data.ok) {
+                    state.botInfo = data.result;
+                    state.tokenValidated = true;
+                    localStorage.setItem(STORAGE_KEYS.BOT_TOKEN, token);
+                    showBotInfo();
+                } else {
+                    state.tokenValidated = false;
+                    state.botInfo = null;
+                    showValidationError(`Invalid Token: ${data.description}`);
+                }
+            } catch (error) {
+                state.tokenValidated = false;
+                state.botInfo = null;
+                showValidationError('Network Error: Failed to connect to Telegram API. Check your internet connection.');
+            }
+
+            // Restore button state
+            validateBtn.disabled = false;
+            validateBtn.textContent = originalText;
+            updateButtonStates();
+        }
+
+        function showValidationError(message) {
+            const errorEl = document.getElementById('validationError');
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+            document.getElementById('botInfo').classList.add('hidden');
+            const statusBadge = document.getElementById('botStatusBadge');
+            statusBadge.textContent = '!';
+            statusBadge.classList.remove('success');
+            statusBadge.classList.add('warning');
+        }
+
+        function hideValidationError() {
+            document.getElementById('validationError').classList.add('hidden');
+        }
+
+        function showBotInfo() {
+            const info = state.botInfo;
+            document.getElementById('botName').textContent = info.first_name;
+            document.getElementById('botUsername').textContent = info.username;
+            document.getElementById('botId').textContent = info.id;
+
+            const descWrapper = document.getElementById('botDescriptionWrapper');
+            if (info.description) {
+                document.getElementById('botDescription').textContent = info.description;
+                descWrapper.classList.remove('hidden');
+            } else {
+                descWrapper.classList.add('hidden');
+            }
+
+            document.getElementById('botInfo').classList.remove('hidden');
+            const statusBadge = document.getElementById('botStatusBadge');
+            statusBadge.textContent = '✓';
+            statusBadge.classList.remove('warning');
+            statusBadge.classList.add('success');
+        }
+
         async function sendMessage(chatId, signal, broadcastData) {
-            const { token, message, mediaType, mediaUrl, mediaFile, parseMode, disableNotification, protectContent, replyMarkup, linkPreviewOptions } = broadcastData;
+            const {
+                token, message, mediaType, mediaUrl, mediaFileId, mediaFile,
+                parseMode, disableNotification, protectContent, replyToMessageId,
+                replyMarkup, linkPreviewOptions, showCaptionAboveMedia
+            } = broadcastData;
 
             const endpoint = mediaType !== 'none' ? 'sendPhoto' : 'sendMessage';
             const url = `https://api.telegram.org/bot${token}/${endpoint}`;
@@ -1113,13 +1266,32 @@
             formData.append('protect_content', protectContent);
             formData.append('parse_mode', parseMode);
 
-            if (replyMarkup) formData.append('reply_markup', JSON.stringify(replyMarkup));
-            if (mediaType === 'none' && linkPreviewOptions) formData.append('link_preview_options', JSON.stringify(linkPreviewOptions));
+            if (replyToMessageId) {
+                formData.append('reply_parameters', JSON.stringify({ message_id: replyToMessageId }));
+            }
+
+            if (replyMarkup) {
+                formData.append('reply_markup', JSON.stringify(replyMarkup));
+            }
+
+            // Add link preview options for text messages
+            if (mediaType === 'none' && linkPreviewOptions) {
+                formData.append('link_preview_options', JSON.stringify(linkPreviewOptions));
+            }
 
             if (mediaType !== 'none') {
                 if (mediaFile) formData.append('photo', mediaFile);
                 else if (mediaUrl) formData.append('photo', mediaUrl);
-                if (message) formData.append('caption', message);
+                else if (mediaFileId) formData.append('photo', mediaFileId);
+
+                if (message) {
+                    formData.append('caption', message);
+                }
+
+                // Add show_caption_above_media for media messages
+                if (showCaptionAboveMedia) {
+                    formData.append('show_caption_above_media', 'true');
+                }
             } else {
                 formData.append('text', message);
             }
@@ -1131,103 +1303,143 @@
         }
 
         // --- BROADCAST CONTROL ---
+
         async function startBroadcast(isTest = false) {
-            const token = localStorage.getItem(STORAGE_KEYS.BOT_TOKEN);
-            const testRecipient = localStorage.getItem(STORAGE_KEYS.TEST_RECIPIENT);
-
-            if (!state.tokenValidated || !token) {
-                alert('Please configure and save your bot token first.');
-                return;
-            }
-
-            if (isTest && !testRecipient) {
-                alert('Please configure a test recipient ID in the settings.');
-                return;
-            }
-
-            if (!isTest && state.validatedRecipients.length === 0) {
-                alert('Please add at least one recipient.');
-                return;
-            }
-
-            const message = getMessageText();
-            if (!message && state.mediaType === 'none') {
-                alert('Please enter a message or add media.');
-                return;
-            }
-
-            const limit = state.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
-            if (message.length > limit) {
-                alert(`Message exceeds ${limit} character limit.`);
-                return;
-            }
-
-            let replyMarkup = null;
             const replyMarkupRaw = UIElements.replyMarkupInput.value.trim();
+            let replyMarkup = null;
             if (replyMarkupRaw) {
-                try { replyMarkup = JSON.parse(replyMarkupRaw); }
-                catch (e) { alert(`Invalid Reply Markup JSON: ${e.message}`); return; }
+                try {
+                    replyMarkup = JSON.parse(replyMarkupRaw);
+                } catch (e) {
+                    alert(`Invalid JSON in Reply Markup field: ${e.message}`);
+                    return;
+                }
             }
 
+            // Build link preview options
             let linkPreviewOptions = null;
             if (UIElements.preferLargeMedia.checked || UIElements.showAboveText.checked) {
                 linkPreviewOptions = {};
-                if (UIElements.preferLargeMedia.checked) linkPreviewOptions.prefer_large_media = true;
-                if (UIElements.showAboveText.checked) linkPreviewOptions.show_above_text = true;
+                if (UIElements.preferLargeMedia.checked) {
+                    linkPreviewOptions.prefer_large_media = true;
+                }
+                if (UIElements.showAboveText.checked) {
+                    linkPreviewOptions.show_above_text = true;
+                }
             }
 
             const broadcastData = {
-                token,
-                message,
+                token: UIElements.botToken.value,
+                message: getMessageText(),
                 parseMode: document.getElementById('parseMode').value,
                 disableNotification: document.getElementById('disableNotification').checked,
                 protectContent: document.getElementById('protectContent').checked,
+                replyToMessageId: UIElements.replyToInput.value.trim(),
                 mediaType: state.mediaType,
                 mediaFile: state.mediaFile,
                 mediaUrl: UIElements.mediaUrlInput.value,
-                replyMarkup,
-                linkPreviewOptions
+                mediaFileId: document.getElementById('mediaFileIdInput').value,
+                replyMarkup: replyMarkup,
+                linkPreviewOptions: linkPreviewOptions,
+                showCaptionAboveMedia: UIElements.showCaptionAboveMedia.checked
             };
 
-            const recipientsToSend = isTest ? [testRecipient] : state.validatedRecipients;
-
-            if (!isTest && recipientsToSend.length > 50) {
-                if (!confirm(`Send to ${recipientsToSend.length} recipients (~${state.estimatedTime}s)?`)) return;
+            // --- Validation ---
+            if (!state.tokenValidated || !broadcastData.token) {
+                alert('Bot Token Required\n\nPlease enter and validate your bot token in the "Bot Setup" tab before sending messages.');
+                return;
+            }
+            if (!isTest && state.validatedRecipients.length === 0) {
+                alert('No Recipients\n\nPlease add at least one valid recipient ID in the "Recipients" tab.');
+                return;
+            }
+            if (!broadcastData.message && broadcastData.mediaType === 'none') {
+                alert('Empty Message\n\nPlease enter a message or add media before sending.\n\nNote: Media can be sent without a caption, but text messages cannot be empty.');
+                return;
             }
 
-            // Start broadcast
+            // Check character length
+            const limit = broadcastData.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
+            const charCount = broadcastData.message.length;
+            if (charCount > limit) {
+                const messageType = broadcastData.mediaType !== 'none' ? 'caption' : 'message';
+                alert(`Message Too Long\n\nYour ${messageType} exceeds the ${limit} character limit.\n\nCurrent length: ${charCount} characters\nOver by: ${charCount - limit} characters\n\nPlease shorten your message.`);
+                return;
+            }
+
+            // Validate media if present
+            if (broadcastData.mediaType === 'upload' && !broadcastData.mediaFile) {
+                alert('No File Selected\n\nYou selected "Upload" media type but haven\'t chosen a file.\n\nPlease select a file or change media type to "No Media".');
+                return;
+            }
+            if (broadcastData.mediaType === 'url' && !broadcastData.mediaUrl) {
+                alert('No URL Provided\n\nYou selected "URL" media type but haven\'t entered a URL.\n\nPlease enter a valid image URL or change media type to "No Media".');
+                return;
+            }
+            if (broadcastData.mediaType === 'fileId' && !broadcastData.mediaFileId) {
+                alert('No File ID Provided\n\nYou selected "File ID" media type but haven\'t entered a file ID.\n\nPlease enter a valid Telegram file ID or change media type to "No Media".');
+                return;
+            }
+
+            // Get test recipient from localStorage
+            const testRecipientId = localStorage.getItem(STORAGE_KEYS.TEST_RECIPIENT);
+            if (isTest && !testRecipientId) {
+                const newTestId = prompt('Enter your Telegram User ID for test messages:\n\n(This will be saved for future use)');
+                if (!newTestId || !/^-?\d+$/.test(newTestId.trim())) {
+                    alert('Invalid User ID. Please enter a valid numeric Telegram User ID.');
+                    return;
+                }
+                localStorage.setItem(STORAGE_KEYS.TEST_RECIPIENT, newTestId.trim());
+            }
+
+            const recipientsToSend = isTest ? [localStorage.getItem(STORAGE_KEYS.TEST_RECIPIENT)] : state.validatedRecipients;
+
+            if (!isTest && recipientsToSend.length > 50) {
+                if (!confirm(`You're about to send to ${recipientsToSend.length} recipients. This will take approximately ${state.estimatedTime} seconds. Continue?`)) return;
+            }
+
+            // --- Start Process ---
             state.broadcasting = true;
             state.paused = false;
             state.pauseFlag = false;
             state.progress = 0;
             state.results = { success: 0, failed: 0, errors: [] };
             state.abortController = new AbortController();
+
             updateBroadcastUI();
 
             const batchSize = 30;
+            const delayBetweenBatches = 1000;
+
             for (let i = 0; i < recipientsToSend.length; i++) {
                 if (state.pauseFlag) {
                     state.paused = true;
                     updateBroadcastUI();
                     await new Promise(resolve => {
-                        const check = setInterval(() => {
-                            if (!state.pauseFlag) { clearInterval(check); state.paused = false; updateBroadcastUI(); resolve(); }
+                        const checkPause = setInterval(() => {
+                            if (!state.pauseFlag) {
+                                clearInterval(checkPause);
+                                state.paused = false;
+                                updateBroadcastUI();
+                                resolve();
+                            }
                         }, 100);
                     });
                 }
 
                 if (state.abortController.signal.aborted) break;
 
+                const recipient = recipientsToSend[i];
                 try {
-                    await sendMessage(recipientsToSend[i], state.abortController.signal, broadcastData);
+                    await sendMessage(recipient, state.abortController.signal, broadcastData);
                     state.results.success++;
                 } catch (error) {
                     state.results.failed++;
-                    state.results.errors.push({ recipient: recipientsToSend[i], error: error.message });
+                    state.results.errors.push({ recipient, error: error.message });
                     if (error.message.includes('Too Many Requests')) {
                         const retryAfter = parseInt(error.message.match(/\d+/)?.[0] || '5');
                         await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-                        i--;
+                        i--; // Retry
                         continue;
                     }
                 }
@@ -1236,16 +1448,32 @@
                 updateProgress();
 
                 if ((i + 1) % batchSize === 0 && i < recipientsToSend.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
                 }
             }
 
             state.broadcasting = false;
+            state.paused = false;
             updateBroadcastUI();
             showResults();
 
+            // Show completion messages
             if (isTest) {
-                alert(state.results.success > 0 ? 'Test message sent!' : `Test failed: ${state.results.errors[0]?.error}`);
+                if (state.results.success > 0) {
+                    alert('Test Message Sent!\n\nYour test message was delivered successfully.');
+                }
+                if (state.results.failed > 0) {
+                    alert(`Test Message Failed\n\nError: ${state.results.errors[0].error}\n\nPlease check your bot token and message format.`);
+                }
+            } else {
+                const total = state.results.success + state.results.failed;
+                const successRate = total > 0 ? ((state.results.success / total) * 100).toFixed(1) : 0;
+
+                if (state.results.failed === 0) {
+                    alert(`Broadcast Complete!\n\n${state.results.success} messages sent successfully.\n\nSuccess rate: 100%`);
+                } else {
+                    alert(`Broadcast Complete\n\nSuccessful: ${state.results.success}\nFailed: ${state.results.failed}\nSuccess rate: ${successRate}%\n\nCheck the results section for details on failed messages.`);
+                }
             }
         }
 
@@ -1262,13 +1490,14 @@
         }
 
         function updateBroadcastUI() {
-            UIElements.testBtn.disabled = state.broadcasting;
-            UIElements.broadcastBtn.disabled = state.broadcasting;
-            document.getElementById('pauseBtn').classList.toggle('hidden', !state.broadcasting || state.paused);
-            document.getElementById('resumeBtn').classList.toggle('hidden', !state.broadcasting || !state.paused);
-            document.getElementById('stopBtn').classList.toggle('hidden', !state.broadcasting);
-            document.getElementById('progressWrapper').classList.toggle('hidden', !state.broadcasting);
-            document.getElementById('pausedText').classList.toggle('hidden', !state.paused);
+            const { broadcasting, paused } = state;
+            UIElements.testBtn.disabled = broadcasting;
+            UIElements.broadcastBtn.disabled = broadcasting;
+            document.getElementById('pauseBtn').classList.toggle('hidden', !broadcasting || paused);
+            document.getElementById('resumeBtn').classList.toggle('hidden', !broadcasting || !paused);
+            document.getElementById('stopBtn').classList.toggle('hidden', !broadcasting);
+            document.getElementById('progressWrapper').classList.toggle('hidden', !broadcasting);
+            document.getElementById('pausedText').classList.toggle('hidden', !paused);
         }
 
         function updateProgress() {
@@ -1276,19 +1505,24 @@
             document.getElementById('progressText').textContent = Math.round(state.progress);
         }
 
+        // --- RESULTS & UTILITIES ---
+
         function showResults() {
             if (state.results.success > 0 || state.results.failed > 0) {
                 document.getElementById('resultsWrapper').classList.remove('hidden');
                 document.getElementById('successCount').textContent = state.results.success;
                 document.getElementById('failedCount').textContent = state.results.failed;
+
                 const total = state.results.success + state.results.failed;
-                document.getElementById('successRate').textContent = total > 0 ? ((state.results.success / total) * 100).toFixed(1) : 0;
+                const successRate = total > 0 ? ((state.results.success / total) * 100).toFixed(1) : 0;
+                document.getElementById('successRate').textContent = successRate;
 
                 const errorSection = document.getElementById('errorSection');
                 if (state.results.errors.length > 0) {
                     errorSection.classList.remove('hidden');
                     document.getElementById('errorList').innerHTML = state.results.errors
-                        .map(err => `<div class="error-item"><strong>${err.recipient}:</strong> ${err.error}</div>`).join('');
+                        .map(err => `<div class="error-item"><strong>${err.recipient}:</strong> ${err.error}</div>`)
+                        .join('');
                 } else {
                     errorSection.classList.add('hidden');
                 }
@@ -1296,45 +1530,108 @@
         }
 
         function copyFailedIds() {
-            navigator.clipboard.writeText(state.results.errors.map(e => e.recipient).join(', '))
-                .then(() => alert('Failed IDs copied!'));
+            const failedIds = state.results.errors.map(e => e.recipient).join(', ');
+            navigator.clipboard.writeText(failedIds).then(() => alert('Failed IDs copied to clipboard!'));
         }
 
         function downloadResults() {
-            const rows = [['Recipient', 'Status', 'Error'],
+            const successfulRecipients = new Set(state.validatedRecipients.filter(r => !state.results.errors.some(e => e.recipient === r)));
+            const csvRows = [
+                ['Recipient', 'Status', 'Error'],
                 ...state.results.errors.map(e => [e.recipient, 'Failed', `"${e.error}"`]),
-                ...state.validatedRecipients.filter(r => !state.results.errors.some(e => e.recipient === r)).map(r => [r, 'Success', ''])
+                ...Array.from(successfulRecipients).map(r => [r, 'Success', ''])
             ];
-            const csv = "data:text/csv;charset=utf-8," + rows.map(r => r.join(",")).join("\n");
+            const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
+
             const link = document.createElement('a');
-            link.href = encodeURI(csv);
-            link.download = `broadcast-results-${new Date().toISOString()}.csv`;
+            link.setAttribute('href', encodeURI(csvContent));
+            link.setAttribute('download', `broadcast-results-${new Date().toISOString()}.csv`);
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
         }
 
         function clearAll() {
-            if (confirm('Clear message and recipients?')) {
+            if (confirm('Are you sure you want to clear the message and recipient list?')) {
                 UIElements.messageInput.innerHTML = '';
                 UIElements.recipientsInput.value = '';
+                UIElements.replyToInput.value = '';
                 UIElements.mediaUrlInput.value = '';
                 UIElements.replyMarkupInput.value = '';
+                document.getElementById('mediaFileIdInput').value = '';
                 document.getElementById('fileInput').value = '';
                 state.mediaFile = null;
                 document.getElementById('selectedFile').textContent = '';
+
+                UIElements.teamMessageCheckbox.checked = false;
                 UIElements.preferLargeMedia.checked = false;
                 UIElements.showAboveText.checked = false;
+                UIElements.showCaptionAboveMedia.checked = false;
+                UIElements.teamMessageCheckbox.dispatchEvent(new Event('change'));
+
                 parseRecipients();
                 updateCharCounter();
                 updatePlaceholder();
+
                 document.getElementById('resultsWrapper').classList.add('hidden');
             }
         }
 
         function showPreview() {
             const previewText = document.getElementById('previewText');
-            const message = getMessageText();
-            previewText.textContent = message || '[Empty message]';
+            const messageText = getMessageText();
+            const parseMode = document.getElementById('parseMode').value;
+
+            // Show what Telegram will receive
+            if (!messageText) {
+                previewText.innerHTML = '<em style="color: #9ca3af;">[Empty message]</em>';
+            } else {
+                // Display formatted preview
+                previewText.textContent = messageText;
+
+                // Add info about parse mode
+                const modeInfo = document.createElement('div');
+                modeInfo.style.cssText = 'margin-top: 8px; padding: 6px; background: #e0f2fe; border-radius: 4px; font-size: 12px; color: #0369a1;';
+                modeInfo.textContent = `Format: ${parseMode} • ${messageText.length} characters`;
+                previewText.appendChild(modeInfo);
+            }
+
             document.getElementById('previewMedia').classList.toggle('hidden', state.mediaType === 'none');
+
+            const previewMarkupContainer = document.getElementById('previewReplyMarkup');
+            previewMarkupContainer.innerHTML = '';
+            const replyMarkupRaw = UIElements.replyMarkupInput.value.trim();
+            if (replyMarkupRaw) {
+                try {
+                    const markup = JSON.parse(replyMarkupRaw);
+                    if (markup.inline_keyboard && Array.isArray(markup.inline_keyboard)) {
+                        const keyboardPreview = document.createElement('div');
+                        keyboardPreview.style.marginTop = '10px';
+                        markup.inline_keyboard.forEach(row => {
+                            const rowDiv = document.createElement('div');
+                            rowDiv.style.display = 'flex';
+                            rowDiv.style.gap = '5px';
+                            rowDiv.style.marginBottom = '5px';
+                            row.forEach(button => {
+                                const btn = document.createElement('button');
+                                btn.textContent = button.text;
+                                btn.className = 'btn btn-secondary';
+                                btn.style.flex = '1';
+                                btn.disabled = true;
+                                rowDiv.appendChild(btn);
+                            });
+                            keyboardPreview.appendChild(rowDiv);
+                        });
+                        previewMarkupContainer.appendChild(keyboardPreview);
+                    }
+                } catch (e) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-text text-sm';
+                    errorDiv.textContent = 'Invalid Reply Markup JSON.';
+                    previewMarkupContainer.appendChild(errorDiv);
+                }
+            }
+
             document.getElementById('previewModal').classList.add('show');
         }
 
@@ -1345,16 +1642,36 @@
         function updateButtonStates() {
             const plainText = UIElements.messageInput.textContent || '';
             const limit = state.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
-            const messageValid = plainText.length > 0 || state.mediaType !== 'none';
-            const testRecipient = localStorage.getItem(STORAGE_KEYS.TEST_RECIPIENT);
+            const charCount = plainText.length;
 
-            UIElements.broadcastBtn.disabled = !state.tokenValidated || state.validatedRecipients.length === 0 || state.broadcasting || !messageValid || plainText.length > limit;
-            UIElements.testBtn.disabled = !state.tokenValidated || !testRecipient || state.broadcasting || !messageValid || plainText.length > limit;
+            // Message is valid if not empty OR if media is present (captions are optional)
+            const messageValid = charCount > 0 || state.mediaType !== 'none';
+
+            const canBroadcast = state.tokenValidated &&
+                                 state.validatedRecipients.length > 0 &&
+                                 !state.broadcasting &&
+                                 messageValid &&
+                                 charCount <= limit;
+
+            const canTest = state.tokenValidated &&
+                            !state.broadcasting &&
+                            messageValid &&
+                            charCount <= limit;
+
+            UIElements.broadcastBtn.disabled = !canBroadcast;
+            UIElements.testBtn.disabled = !canTest;
         }
 
-        // Placeholder CSS
+        // Add CSS for placeholder
         const style = document.createElement('style');
-        style.textContent = `#messageInput[data-placeholder]:empty:before { content: attr(data-placeholder); color: #9ca3af; pointer-events: none; }`;
+        style.textContent = `
+            #messageInput[data-placeholder]:empty:before {
+                content: attr(data-placeholder);
+                color: #9ca3af;
+                pointer-events: none;
+                position: absolute;
+            }
+        `;
         document.head.appendChild(style);
     </script>
 </body>
