@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Uploader to Airtable</title>
+    <meta name="description" content="Upload PDF files to Airtable with automatic metadata extraction via cloud function">
+    <meta name="category" content="Data">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .config-section {
+            background: #f8f9fa;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .config-section h3 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .config-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .config-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 5px;
+        }
+
+        .config-group input {
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: monospace;
+        }
+
+        .config-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .config-status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .config-status.valid {
+            background: #f0fff4;
+            color: #38a169;
+            border: 1px solid #9ae6b4;
+        }
+
+        .config-status.invalid {
+            background: #fff5f5;
+            color: #e53e3e;
+            border: 1px solid #feb2b2;
+        }
+
+        .drop-zone {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 60px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #5a67d8;
+            background: linear-gradient(135deg, #e6edff 0%, #dce4ff 100%);
+            transform: translateY(-2px);
+        }
+
+        .drop-zone.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .drop-zone-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .drop-zone h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .drop-zone p {
+            color: #718096;
+            font-size: 1rem;
+        }
+
+        .files-section {
+            margin-top: 40px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-item {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .file-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .file-icon {
+            width: 40px;
+            height: 40px;
+            background: #667eea;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .file-details h4 {
+            font-size: 1rem;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+
+        .file-details p {
+            font-size: 0.85rem;
+            color: #718096;
+        }
+
+        .file-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-waiting {
+            background: #fef5e7;
+            color: #d69e2e;
+        }
+
+        .status-uploading {
+            background: #e6fffa;
+            color: #319795;
+        }
+
+        .status-success {
+            background: #f0fff4;
+            color: #38a169;
+        }
+
+        .status-error {
+            background: #fed7d7;
+            color: #e53e3e;
+        }
+
+        .retry-btn {
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.3s ease;
+        }
+
+        .retry-btn:hover {
+            background: #5a67d8;
+        }
+
+        .file-logs {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            max-height: 300px;
+            overflow-y: auto;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 4px 0;
+        }
+
+        .log-timestamp {
+            color: #a0aec0;
+            margin-right: 10px;
+        }
+
+        .log-level-info {
+            color: #63b3ed;
+        }
+
+        .log-level-success {
+            color: #68d391;
+        }
+
+        .log-level-error {
+            color: #fc8181;
+        }
+
+        .log-level-warning {
+            color: #f6e05e;
+        }
+
+        .expand-icon {
+            transition: transform 0.3s ease;
+            color: #a0aec0;
+        }
+
+        .file-item.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .file-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .file-info {
+                width: 100%;
+            }
+
+            .file-status {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .status-uploading {
+            animation: pulse 2s infinite;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PDF Uploader</h1>
+            <p>Bulk upload PDF files to Airtable with metadata extraction</p>
+        </div>
+
+        <div class="content">
+            <div class="config-section">
+                <h3>Configuration</h3>
+                <div class="config-grid">
+                    <div class="config-group">
+                        <label for="apiKey">Airtable API Key</label>
+                        <input type="password" id="apiKey" placeholder="pat...">
+                    </div>
+                    <div class="config-group">
+                        <label for="baseId">Base ID</label>
+                        <input type="text" id="baseId" placeholder="app...">
+                    </div>
+                    <div class="config-group">
+                        <label for="tableId">Table ID</label>
+                        <input type="text" id="tableId" placeholder="tbl...">
+                    </div>
+                </div>
+                <div id="configStatus" class="config-status hidden"></div>
+            </div>
+
+            <div class="drop-zone disabled" id="dropZone">
+                <div class="drop-zone-icon">📁</div>
+                <h3>Drop PDF files here</h3>
+                <p>or click to select files (configure Airtable first)</p>
+                <input type="file" id="fileInput" multiple accept=".pdf" style="display: none;">
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalFiles">0</div>
+                    <div class="stat-label">Total Files</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="successFiles">0</div>
+                    <div class="stat-label">Uploaded</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="errorFiles">0</div>
+                    <div class="stat-label">Errors</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="uploadingFiles">0</div>
+                    <div class="stat-label">In Progress</div>
+                </div>
+            </div>
+
+            <div class="files-section">
+                <div class="section-title">
+                    <span>📋</span>
+                    <span>Files</span>
+                </div>
+                <div id="filesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Storage keys
+        const STORAGE_KEYS = {
+            API_KEY: 'pdf_uploader_airtable_api_key',
+            BASE_ID: 'pdf_uploader_airtable_base_id',
+            TABLE_ID: 'pdf_uploader_airtable_table_id'
+        };
+
+        // Configuration (loaded from localStorage)
+        const CONFIG = {
+            API_KEY: '',
+            BASE_ID: '',
+            TABLE_ID: '',
+            get API_URL() {
+                return `https://api.airtable.com/v0/${this.BASE_ID}/${this.TABLE_ID}`;
+            },
+            GCF_URL: 'https://podtemapdfvalidator-305018873985.us-east1.run.app',
+            MAX_RETRIES: 3,
+            RETRY_DELAY: 2000
+        };
+
+        // Application state
+        let fileQueue = [];
+        let stats = {
+            total: 0,
+            success: 0,
+            error: 0,
+            uploading: 0
+        };
+
+        // File statuses
+        const FileStatus = {
+            WAITING: 'waiting',
+            UPLOADING: 'uploading',
+            SUCCESS: 'success',
+            ERROR: 'error'
+        };
+
+        // DOM Elements
+        const apiKeyInput = document.getElementById('apiKey');
+        const baseIdInput = document.getElementById('baseId');
+        const tableIdInput = document.getElementById('tableId');
+        const configStatus = document.getElementById('configStatus');
+        const dropZone = document.getElementById('dropZone');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+            initializeDropZone();
+            initializeConfigInputs();
+            updateStats();
+        });
+
+        function loadConfig() {
+            const savedApiKey = localStorage.getItem(STORAGE_KEYS.API_KEY);
+            const savedBaseId = localStorage.getItem(STORAGE_KEYS.BASE_ID);
+            const savedTableId = localStorage.getItem(STORAGE_KEYS.TABLE_ID);
+
+            if (savedApiKey) {
+                apiKeyInput.value = savedApiKey;
+                CONFIG.API_KEY = savedApiKey;
+            }
+            if (savedBaseId) {
+                baseIdInput.value = savedBaseId;
+                CONFIG.BASE_ID = savedBaseId;
+            }
+            if (savedTableId) {
+                tableIdInput.value = savedTableId;
+                CONFIG.TABLE_ID = savedTableId;
+            }
+
+            validateConfig();
+        }
+
+        function initializeConfigInputs() {
+            apiKeyInput.addEventListener('input', () => {
+                CONFIG.API_KEY = apiKeyInput.value.trim();
+                localStorage.setItem(STORAGE_KEYS.API_KEY, CONFIG.API_KEY);
+                validateConfig();
+            });
+
+            baseIdInput.addEventListener('input', () => {
+                CONFIG.BASE_ID = baseIdInput.value.trim();
+                localStorage.setItem(STORAGE_KEYS.BASE_ID, CONFIG.BASE_ID);
+                validateConfig();
+            });
+
+            tableIdInput.addEventListener('input', () => {
+                CONFIG.TABLE_ID = tableIdInput.value.trim();
+                localStorage.setItem(STORAGE_KEYS.TABLE_ID, CONFIG.TABLE_ID);
+                validateConfig();
+            });
+        }
+
+        function validateConfig() {
+            const isValid = CONFIG.API_KEY && CONFIG.BASE_ID && CONFIG.TABLE_ID;
+
+            if (isValid) {
+                configStatus.textContent = '✓ Configuration saved';
+                configStatus.className = 'config-status valid';
+                dropZone.classList.remove('disabled');
+            } else {
+                const missing = [];
+                if (!CONFIG.API_KEY) missing.push('API Key');
+                if (!CONFIG.BASE_ID) missing.push('Base ID');
+                if (!CONFIG.TABLE_ID) missing.push('Table ID');
+                configStatus.textContent = `Missing: ${missing.join(', ')}`;
+                configStatus.className = 'config-status invalid';
+                dropZone.classList.add('disabled');
+            }
+            configStatus.classList.remove('hidden');
+
+            return isValid;
+        }
+
+        function initializeDropZone() {
+            const fileInput = document.getElementById('fileInput');
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (!dropZone.classList.contains('disabled')) {
+                    dropZone.classList.add('dragover');
+                }
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (!dropZone.classList.contains('disabled')) {
+                    handleFiles(e.dataTransfer.files);
+                }
+            });
+
+            dropZone.addEventListener('click', () => {
+                if (!dropZone.classList.contains('disabled')) {
+                    fileInput.click();
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+                e.target.value = '';
+            });
+        }
+
+        function handleFiles(files) {
+            if (!validateConfig()) {
+                alert('Please configure Airtable settings first');
+                return;
+            }
+
+            const pdfFiles = Array.from(files).filter(file =>
+                file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+            );
+
+            if (pdfFiles.length === 0) {
+                alert('Please select only PDF files');
+                return;
+            }
+
+            pdfFiles.forEach(file => {
+                const fileId = generateId();
+                const fileItem = {
+                    id: fileId,
+                    file: file,
+                    status: FileStatus.WAITING,
+                    logs: [],
+                    retryCount: 0,
+                    recordId: null
+                };
+
+                fileQueue.unshift(fileItem);
+                addLog(fileItem, 'info', `File added to queue: ${file.name} (${formatFileSize(file.size)})`);
+
+                renderFileItem(fileItem);
+                updateStats();
+
+                setTimeout(() => uploadFile(fileItem), 100);
+            });
+        }
+
+        async function uploadFile(fileItem) {
+            try {
+                updateFileStatus(fileItem, FileStatus.UPLOADING);
+                addLog(fileItem, 'info', 'Starting file upload...');
+
+                addLog(fileItem, 'info', 'Sending file to GCF for validation...');
+                const gcfResponse = await uploadToGCF(fileItem);
+
+                if (!gcfResponse.valid) {
+                    throw new Error(`PDF validation failed: ${gcfResponse.message || 'Unknown error'}`);
+                }
+
+                addLog(fileItem, 'success', `PDF validated. Pages: ${gcfResponse.numberOfPages}`);
+                addLog(fileItem, 'info', `Metadata: Title="${gcfResponse.Title}", Source="${gcfResponse.SourceName}", Language="${gcfResponse.Language}"`);
+
+                if (gcfResponse.OriginalPdfUrl) {
+                    addLog(fileItem, 'success', `CDN URL: ${gcfResponse.OriginalPdfUrl}`);
+                }
+
+                if (gcfResponse.Authors) {
+                    addLog(fileItem, 'info', `Authors: "${gcfResponse.Authors}"`);
+                }
+                if (gcfResponse.Date) {
+                    addLog(fileItem, 'info', `Date: "${gcfResponse.Date}"`);
+                }
+                if (gcfResponse.Tags && Array.isArray(gcfResponse.Tags)) {
+                    addLog(fileItem, 'info', `Tags: [${gcfResponse.Tags.join(', ')}]`);
+                }
+                if (gcfResponse.PrimaryTag) {
+                    addLog(fileItem, 'info', `Primary Tag: "${gcfResponse.PrimaryTag}"`);
+                }
+
+                addLog(fileItem, 'info', 'Creating Airtable record...');
+                const response = await createAirtableRecord(fileItem, gcfResponse);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    fileItem.recordId = data.records[0].id;
+                    updateFileStatus(fileItem, FileStatus.SUCCESS);
+                    addLog(fileItem, 'success', `Airtable record created. Record ID: ${fileItem.recordId}`);
+                } else {
+                    const errorText = await response.text();
+                    throw new Error(`Airtable API error ${response.status}: ${errorText}`);
+                }
+
+            } catch (error) {
+                addLog(fileItem, 'error', `Upload error: ${error.message}`);
+
+                if (fileItem.retryCount < CONFIG.MAX_RETRIES) {
+                    fileItem.retryCount++;
+                    addLog(fileItem, 'warning', `Retry ${fileItem.retryCount}/${CONFIG.MAX_RETRIES} in ${CONFIG.RETRY_DELAY/1000} sec...`);
+
+                    setTimeout(() => {
+                        uploadFile(fileItem);
+                    }, CONFIG.RETRY_DELAY);
+                } else {
+                    updateFileStatus(fileItem, FileStatus.ERROR);
+                    addLog(fileItem, 'error', 'Max retries exceeded');
+                }
+            }
+        }
+
+        function sanitizeFilename(name, fallbackName = 'document') {
+            if (!name || typeof name !== 'string' || name.trim() === '') {
+                name = fallbackName;
+            }
+            let sanitized = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
+            if (sanitized.length === 0) {
+                return 'document';
+            }
+            return sanitized;
+        }
+
+        async function uploadToGCF(fileItem) {
+            const originalFileName = fileItem.file.name;
+            const fileNameWithoutExt = originalFileName.replace(/\.pdf$/i, '');
+            const sanitizedBaseName = sanitizeFilename(fileNameWithoutExt, 'document');
+            const sanitizedFileName = `${sanitizedBaseName}.pdf`;
+
+            addLog(fileItem, 'info', `Original name: "${originalFileName}"`);
+            addLog(fileItem, 'info', `Sanitized name: "${sanitizedFileName}"`);
+
+            const url = new URL(CONFIG.GCF_URL);
+            url.searchParams.append('recordId', '');
+            url.searchParams.append('fileName', sanitizedFileName);
+
+            addLog(fileItem, 'info', `Sending file to GCF: ${url.toString()}`);
+
+            const response = await fetch(url.toString(), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/octet-stream'
+                },
+                body: fileItem.file
+            });
+
+            addLog(fileItem, 'info', `GCF response: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`GCF error ${response.status}: ${errorText}`);
+            }
+
+            const result = await response.json();
+            addLog(fileItem, 'info', `GCF result: ${JSON.stringify(result)}`);
+
+            return result;
+        }
+
+        async function createAirtableRecord(fileItem, gcfResponse) {
+            const fields = {
+                OriginalPDFLink: gcfResponse.OriginalPdfUrl,
+                Status: 'Started',
+                Type: 'Article',
+                OriginalTitle: gcfResponse.Title,
+                SourceName: gcfResponse.SourceName,
+                OriginalURL: gcfResponse.OriginalURL,
+                Language: gcfResponse.Language,
+                '#ofPages': gcfResponse.numberOfPages,
+                SummaryNeeded: true
+            };
+
+            if (gcfResponse.Authors && gcfResponse.Authors.trim() !== '') {
+                fields.Authors = gcfResponse.Authors;
+            }
+
+            if (gcfResponse.Date && gcfResponse.Date.trim() !== '') {
+                fields.Date = gcfResponse.Date;
+            }
+
+            if (gcfResponse.Tags && Array.isArray(gcfResponse.Tags) && gcfResponse.Tags.length > 0) {
+                fields.Tags = gcfResponse.Tags;
+            }
+
+            if (gcfResponse.PrimaryTag && gcfResponse.PrimaryTag.trim() !== '' && gcfResponse.PrimaryTag !== 'null') {
+                fields.PrimaryTag = gcfResponse.PrimaryTag;
+            }
+
+            if (gcfResponse.IsCaseReport === true) {
+                fields.CaseReport = true;
+            }
+
+            const payload = {
+                records: [{
+                    fields: fields
+                }]
+            };
+
+            addLog(fileItem, 'info', 'Sending request to Airtable API...');
+
+            const response = await fetch(CONFIG.API_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${CONFIG.API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            addLog(fileItem, 'info', `Airtable API response: ${response.status} ${response.statusText}`);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                addLog(fileItem, 'error', `Airtable error details: ${errorText}`);
+            }
+
+            return response;
+        }
+
+        function renderFileItem(fileItem) {
+            const filesList = document.getElementById('filesList');
+
+            const fileDiv = document.createElement('div');
+            fileDiv.className = 'file-item fade-in';
+            fileDiv.id = `file-${fileItem.id}`;
+
+            fileDiv.innerHTML = `
+                <div class="file-header" onclick="toggleLogs('${fileItem.id}')">
+                    <div class="file-info">
+                        <div class="file-icon">PDF</div>
+                        <div class="file-details">
+                            <h4>${fileItem.file.name}</h4>
+                            <p>${formatFileSize(fileItem.file.size)} • Added ${new Date().toLocaleTimeString()}</p>
+                        </div>
+                    </div>
+                    <div class="file-status">
+                        <span class="status-badge status-${fileItem.status}" id="status-${fileItem.id}">
+                            ${getStatusText(fileItem.status)}
+                        </span>
+                        <button class="retry-btn hidden" id="retry-${fileItem.id}" onclick="retryUpload('${fileItem.id}')">
+                            🔄 Retry
+                        </button>
+                        <span class="expand-icon">▼</span>
+                    </div>
+                </div>
+                <div class="file-logs hidden" id="logs-${fileItem.id}"></div>
+            `;
+
+            filesList.insertBefore(fileDiv, filesList.firstChild);
+            updateFileDisplay(fileItem);
+        }
+
+        function updateFileStatus(fileItem, status) {
+            const oldStatus = fileItem.status;
+            fileItem.status = status;
+
+            if (oldStatus !== status) {
+                if (oldStatus === FileStatus.UPLOADING) stats.uploading--;
+                if (oldStatus === FileStatus.ERROR) stats.error--;
+                if (oldStatus === FileStatus.SUCCESS) stats.success--;
+
+                if (status === FileStatus.UPLOADING) stats.uploading++;
+                if (status === FileStatus.ERROR) stats.error++;
+                if (status === FileStatus.SUCCESS) stats.success++;
+
+                updateStats();
+            }
+
+            updateFileDisplay(fileItem);
+        }
+
+        function updateFileDisplay(fileItem) {
+            const statusElement = document.getElementById(`status-${fileItem.id}`);
+            const retryBtn = document.getElementById(`retry-${fileItem.id}`);
+
+            if (statusElement) {
+                statusElement.className = `status-badge status-${fileItem.status}`;
+                statusElement.textContent = getStatusText(fileItem.status);
+            }
+
+            if (retryBtn) {
+                if (fileItem.status === FileStatus.ERROR) {
+                    retryBtn.classList.remove('hidden');
+                } else {
+                    retryBtn.classList.add('hidden');
+                }
+            }
+        }
+
+        function addLog(fileItem, level, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            fileItem.logs.push({
+                timestamp,
+                level,
+                message
+            });
+
+            const logsContainer = document.getElementById(`logs-${fileItem.id}`);
+            if (logsContainer) {
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.innerHTML = `
+                    <span class="log-timestamp">[${timestamp}]</span>
+                    <span class="log-level-${level}">[${level.toUpperCase()}]</span>
+                    ${message}
+                `;
+                logsContainer.appendChild(logEntry);
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            }
+        }
+
+        function toggleLogs(fileId) {
+            const fileItem = document.getElementById(`file-${fileId}`);
+            const logsContainer = document.getElementById(`logs-${fileId}`);
+
+            if (fileItem && logsContainer) {
+                if (logsContainer.classList.contains('hidden')) {
+                    logsContainer.classList.remove('hidden');
+                    fileItem.classList.add('expanded');
+                } else {
+                    logsContainer.classList.add('hidden');
+                    fileItem.classList.remove('expanded');
+                }
+            }
+        }
+
+        function retryUpload(fileId) {
+            const fileItem = fileQueue.find(item => item.id === fileId);
+            if (fileItem) {
+                fileItem.retryCount = 0;
+                addLog(fileItem, 'info', 'Retry initiated by user');
+                uploadFile(fileItem);
+            }
+        }
+
+        function updateStats() {
+            stats.total = fileQueue.length;
+
+            document.getElementById('totalFiles').textContent = stats.total;
+            document.getElementById('successFiles').textContent = stats.success;
+            document.getElementById('errorFiles').textContent = stats.error;
+            document.getElementById('uploadingFiles').textContent = stats.uploading;
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                [FileStatus.WAITING]: 'Waiting',
+                [FileStatus.UPLOADING]: 'Uploading',
+                [FileStatus.SUCCESS]: 'Done',
+                [FileStatus.ERROR]: 'Error'
+            };
+            return statusMap[status] || status;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        window.addEventListener('beforeunload', function(e) {
+            if (stats.uploading > 0) {
+                e.preventDefault();
+                e.returnValue = 'You have files being uploaded. Are you sure you want to leave?';
+            }
+        });
+
+        console.log('PDF Uploader initialized');
+    </script>
+</body>
+</html>
