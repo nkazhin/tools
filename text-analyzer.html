@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Analyzer</title>
+    <meta name="description" content="Count characters, words, and lines in your text instantly">
+    <meta name="category" content="Text">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9fafb;
+            color: #1f2937;
+            line-height: 1.5;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0 0 8px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin: 0 0 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .stats-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            background: #f3f4f6;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-label {
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 300px;
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            background: #e5e7eb;
+            color: #374151;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #d1d5db;
+        }
+
+        .mt-16 { margin-top: 16px; }
+
+        @media (max-width: 600px) {
+            body { padding: 16px; }
+            .stats-bar {
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Text Analyzer</h1>
+    <p class="subtitle">Count characters, words, and lines in your text</p>
+
+    <div class="card">
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-label">Characters</span>
+                <span class="stat-value" id="charCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Words</span>
+                <span class="stat-value" id="wordCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Lines</span>
+                <span class="stat-value" id="lineCount">0</span>
+            </div>
+        </div>
+
+        <textarea 
+            class="textarea" 
+            id="textInput" 
+            placeholder="Enter or paste your text here..."
+            oninput="analyzeText()"
+        ></textarea>
+
+        <div class="mt-16">
+            <button class="btn" onclick="clearText()">Clear</button>
+        </div>
+    </div>
+
+    <script>
+        const elements = {
+            textInput: document.getElementById('textInput'),
+            charCount: document.getElementById('charCount'),
+            wordCount: document.getElementById('wordCount'),
+            lineCount: document.getElementById('lineCount')
+        };
+
+        function analyzeText() {
+            const text = elements.textInput.value;
+
+            // Character count
+            const charCount = text.length;
+
+            // Word count
+            const trimmedText = text.trim();
+            const wordCount = trimmedText === '' ? 0 : trimmedText.split(/\s+/).length;
+
+            // Line count
+            const lineCount = text === '' ? 0 : text.split('\n').length;
+
+            // Update display
+            elements.charCount.textContent = charCount;
+            elements.wordCount.textContent = wordCount;
+            elements.lineCount.textContent = lineCount;
+        }
+
+        function clearText() {
+            elements.textInput.value = '';
+            analyzeText();
+        }
+    </script>
+</body>
+</html>
