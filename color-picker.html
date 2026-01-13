@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Color Picker</title>
+    <meta name="description" content="Pick colors from images with magnifier, get RGB/HEX/HSL values, and save up to 5 colors">
+    <meta name="category" content="Images">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9fafb;
+            color: #1f2937;
+            line-height: 1.5;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0 0 8px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin: 0 0 24px;
+            text-align: center;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .main-layout {
+                flex-direction: column;
+            }
+        }
+
+        .left-panel, .right-panel {
+            flex: 1;
+        }
+
+        .drop-zone {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        .drop-zone:hover, .drop-zone.dragging {
+            background: #eff6ff;
+            border-color: #3b82f6;
+        }
+
+        .drop-zone-icon {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+
+        .drop-zone-text {
+            color: #2563eb;
+        }
+
+        .canvas-container {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        #mainCanvas {
+            width: 100%;
+            cursor: crosshair;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .magnifier {
+            position: absolute;
+            pointer-events: none;
+            display: none;
+        }
+
+        #magnifierCanvas {
+            border-radius: 50%;
+            border: 4px solid white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .color-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .color-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .color-circle {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            margin-right: 16px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-title {
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        .color-values {
+            font-size: 14px;
+        }
+
+        .color-values p {
+            margin: 4px 0;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            background: #667eea;
+            color: white;
+            transition: background 0.2s;
+            margin-top: 8px;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+        }
+
+        .btn.copied {
+            background: #10b981;
+        }
+
+        .hint {
+            font-size: 13px;
+            color: #6b7280;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .hidden { display: none; }
+
+        #fileInput { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Image Color Picker</h1>
+    <p class="subtitle">Upload an image and click to pick colors</p>
+
+    <div class="main-layout">
+        <div class="left-panel">
+            <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+                <div class="drop-zone-icon">🎨</div>
+                <div class="drop-zone-text">Click to upload or drag and drop an image</div>
+            </div>
+
+            <div class="canvas-container" id="canvasContainer" style="display: none;">
+                <canvas id="mainCanvas"></canvas>
+                <div class="magnifier" id="magnifier">
+                    <canvas id="magnifierCanvas" width="100" height="100"></canvas>
+                </div>
+            </div>
+
+            <p class="hint" id="hint" style="display: none;">Click on the image to save a color (up to 5 colors)</p>
+        </div>
+
+        <div class="right-panel">
+            <div class="color-card" id="currentColorCard" style="display: none;">
+                <div class="color-header">
+                    <div class="color-circle" id="currentColorCircle"></div>
+                    <span class="color-title">Current Color</span>
+                </div>
+                <div class="color-values">
+                    <p><strong>RGB:</strong> <span id="currentRgb"></span></p>
+                    <p><strong>HEX:</strong> <span id="currentHex"></span></p>
+                    <p><strong>HSL:</strong> <span id="currentHsl"></span></p>
+                </div>
+            </div>
+
+            <div id="lockedColors"></div>
+        </div>
+    </div>
+
+    <script>
+        let imageLoaded = false;
+        let currentColor = null;
+        let lockedColors = [];
+        const maxColors = 5;
+
+        const mainCanvas = document.getElementById('mainCanvas');
+        const mainCtx = mainCanvas.getContext('2d');
+        const magnifierCanvas = document.getElementById('magnifierCanvas');
+        const magCtx = magnifierCanvas.getContext('2d');
+        const magnifier = document.getElementById('magnifier');
+        const dropZone = document.getElementById('dropZone');
+
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragging');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragging');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragging');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                loadImage(file);
+            }
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                loadImage(file);
+            }
+        }
+
+        function loadImage(file) {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                mainCanvas.width = img.width;
+                mainCanvas.height = img.height;
+                mainCtx.drawImage(img, 0, 0);
+                imageLoaded = true;
+                document.getElementById('canvasContainer').style.display = 'block';
+                document.getElementById('hint').style.display = 'block';
+                URL.revokeObjectURL(url);
+            };
+            img.src = url;
+        }
+
+        // Canvas mouse events
+        mainCanvas.addEventListener('mousemove', (e) => {
+            if (!imageLoaded) return;
+
+            const rect = mainCanvas.getBoundingClientRect();
+            const scaleX = mainCanvas.width / rect.width;
+            const scaleY = mainCanvas.height / rect.height;
+            const x = Math.floor((e.clientX - rect.left) * scaleX);
+            const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+            // Get pixel color
+            const imageData = mainCtx.getImageData(x, y, 1, 1);
+            const [r, g, b] = imageData.data;
+            currentColor = { r, g, b };
+
+            // Update current color display
+            updateCurrentColorDisplay(r, g, b);
+
+            // Update magnifier position
+            const displayX = (e.clientX - rect.left) - 50;
+            const displayY = (e.clientY - rect.top) - 50;
+            magnifier.style.left = displayX + 'px';
+            magnifier.style.top = displayY + 'px';
+
+            // Draw magnified view
+            updateMagnifier(x, y);
+        });
+
+        mainCanvas.addEventListener('mouseenter', () => {
+            if (imageLoaded) {
+                magnifier.style.display = 'block';
+                document.getElementById('currentColorCard').style.display = 'block';
+            }
+        });
+
+        mainCanvas.addEventListener('mouseleave', () => {
+            magnifier.style.display = 'none';
+        });
+
+        mainCanvas.addEventListener('click', () => {
+            if (currentColor && lockedColors.length < maxColors) {
+                const hex = rgbToHex(currentColor.r, currentColor.g, currentColor.b);
+                // Don't add duplicate of most recent color
+                if (lockedColors.length === 0 || hex !== lockedColors[0].hex) {
+                    lockedColors.unshift({
+                        r: currentColor.r,
+                        g: currentColor.g,
+                        b: currentColor.b,
+                        hex: hex
+                    });
+                    if (lockedColors.length > maxColors) {
+                        lockedColors.pop();
+                    }
+                    renderLockedColors();
+                }
+            }
+        });
+
+        function updateMagnifier(x, y) {
+            const magSize = 100;
+            const zoomFactor = 8;
+
+            magCtx.fillStyle = 'white';
+            magCtx.fillRect(0, 0, magSize, magSize);
+
+            const sx = Math.max(0, Math.min(x - magSize / (2 * zoomFactor), mainCanvas.width - magSize / zoomFactor));
+            const sy = Math.max(0, Math.min(y - magSize / (2 * zoomFactor), mainCanvas.height - magSize / zoomFactor));
+            const sWidth = magSize / zoomFactor;
+            const sHeight = magSize / zoomFactor;
+
+            magCtx.drawImage(mainCanvas, sx, sy, sWidth, sHeight, 0, 0, magSize, magSize);
+
+            // Draw crosshair
+            magCtx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            magCtx.lineWidth = 1;
+            magCtx.beginPath();
+            magCtx.moveTo(magSize / 2, 0);
+            magCtx.lineTo(magSize / 2, magSize);
+            magCtx.moveTo(0, magSize / 2);
+            magCtx.lineTo(magSize, magSize / 2);
+            magCtx.stroke();
+        }
+
+        function updateCurrentColorDisplay(r, g, b) {
+            document.getElementById('currentColorCircle').style.backgroundColor = `rgb(${r},${g},${b})`;
+            document.getElementById('currentRgb').textContent = `rgb(${r}, ${g}, ${b})`;
+            document.getElementById('currentHex').textContent = rgbToHex(r, g, b);
+            document.getElementById('currentHsl').textContent = rgbToHsl(r, g, b);
+        }
+
+        function renderLockedColors() {
+            const container = document.getElementById('lockedColors');
+            container.innerHTML = '';
+
+            lockedColors.forEach((color, index) => {
+                const card = document.createElement('div');
+                card.className = 'color-card';
+                card.innerHTML = `
+                    <div class="color-header">
+                        <div class="color-circle" style="background-color: rgb(${color.r},${color.g},${color.b})"></div>
+                        <span class="color-title">🔒 Saved Color ${index + 1}</span>
+                    </div>
+                    <div class="color-values">
+                        <p><strong>RGB:</strong> rgb(${color.r}, ${color.g}, ${color.b})</p>
+                        <p><strong>HEX:</strong> ${color.hex}</p>
+                        <p><strong>HSL:</strong> ${rgbToHsl(color.r, color.g, color.b)}</p>
+                    </div>
+                    <button class="btn" onclick="copyHex(${index})">Copy HEX</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function copyHex(index) {
+            const hex = lockedColors[index].hex;
+            navigator.clipboard.writeText(hex)
+                .then(() => {
+                    const btns = document.querySelectorAll('#lockedColors .btn');
+                    btns[index].textContent = 'Copied!';
+                    btns[index].classList.add('copied');
+                    setTimeout(() => {
+                        btns[index].textContent = 'Copy HEX';
+                        btns[index].classList.remove('copied');
+                    }, 2000);
+                })
+                .catch(() => {
+                    // Fallback
+                    const textarea = document.createElement('textarea');
+                    textarea.value = hex;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+
+                    const btns = document.querySelectorAll('#lockedColors .btn');
+                    btns[index].textContent = 'Copied!';
+                    btns[index].classList.add('copied');
+                    setTimeout(() => {
+                        btns[index].textContent = 'Copy HEX';
+                        btns[index].classList.remove('copied');
+                    }, 2000);
+                });
+        }
+
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    default: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+
+            return `hsl(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
+        }
+    </script>
+</body>
+</html>
