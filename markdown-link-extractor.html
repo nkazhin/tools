@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Link Extractor</title>
+    <meta name="description" content="Extract URLs from markdown links [text](url) format">
+    <meta name="category" content="Text">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9fafb;
+            color: #1f2937;
+            line-height: 1.5;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0 0 8px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin: 0 0 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 160px;
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            background: #e5e7eb;
+            color: #374151;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #d1d5db;
+        }
+
+        .output-section {
+            margin-top: 16px;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .output-box {
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 14px;
+            word-break: break-all;
+            min-height: 40px;
+        }
+
+        .output-box.empty {
+            color: #9ca3af;
+        }
+
+        .link-count {
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .success {
+            color: #10b981;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .hidden { display: none; }
+
+        @media (max-width: 600px) {
+            body { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Markdown Link Extractor</h1>
+    <p class="subtitle">Extract URLs from markdown [text](url) links</p>
+
+    <div class="card">
+        <label class="label" for="markdownInput">Paste Markdown Text</label>
+        <textarea 
+            class="textarea" 
+            id="markdownInput" 
+            placeholder="Paste your markdown text here..."
+            oninput="extractLinks()"
+        ></textarea>
+
+        <div class="output-section">
+            <div class="output-header">
+                <label class="label">Extracted Links</label>
+                <span class="link-count" id="linkCount"></span>
+            </div>
+            <div class="output-box" id="output">No links found</div>
+            <div class="flex" style="display: flex; gap: 8px; margin-top: 12px;">
+                <button class="btn" id="copyBtn" onclick="copyLinks()" style="display: none;">Copy Links</button>
+                <button class="btn" onclick="clearAll()">Clear</button>
+            </div>
+            <div id="success" class="success hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        const elements = {
+            markdownInput: document.getElementById('markdownInput'),
+            output: document.getElementById('output'),
+            linkCount: document.getElementById('linkCount'),
+            copyBtn: document.getElementById('copyBtn'),
+            success: document.getElementById('success')
+        };
+
+        let currentLinks = [];
+
+        function extractLinks() {
+            const text = elements.markdownInput.value;
+            const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+            const matches = [...text.matchAll(linkRegex)];
+
+            if (matches.length > 0) {
+                currentLinks = matches.map(match => match[2]);
+                elements.output.textContent = currentLinks.join(', ');
+                elements.output.classList.remove('empty');
+                elements.linkCount.textContent = `${currentLinks.length} link${currentLinks.length !== 1 ? 's' : ''} found`;
+                elements.copyBtn.style.display = 'inline-block';
+            } else {
+                currentLinks = [];
+                elements.output.textContent = 'No links found';
+                elements.output.classList.add('empty');
+                elements.linkCount.textContent = '';
+                elements.copyBtn.style.display = 'none';
+            }
+
+            hideSuccess();
+        }
+
+        function copyLinks() {
+            if (currentLinks.length === 0) return;
+
+            navigator.clipboard.writeText(currentLinks.join(', '))
+                .then(() => showSuccess('Copied to clipboard!'))
+                .catch(() => {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = currentLinks.join(', ');
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    showSuccess('Copied to clipboard!');
+                });
+        }
+
+        function clearAll() {
+            elements.markdownInput.value = '';
+            currentLinks = [];
+            elements.output.textContent = 'No links found';
+            elements.output.classList.add('empty');
+            elements.linkCount.textContent = '';
+            elements.copyBtn.style.display = 'none';
+            hideSuccess();
+        }
+
+        function showSuccess(message) {
+            elements.success.textContent = message;
+            elements.success.classList.remove('hidden');
+        }
+
+        function hideSuccess() {
+            elements.success.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
