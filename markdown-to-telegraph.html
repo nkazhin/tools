@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown to Telegraph JSON</title>
+    <meta name="description" content="Convert Markdown to Telegraph API JSON format with support for figures, links, and formatting">
+    <meta name="category" content="Text">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9fafb;
+            color: #1f2937;
+            line-height: 1.5;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0 0 8px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin: 0 0 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: 'SF Mono', Monaco, 'Inconsolata', 'Fira Code', monospace;
+            resize: vertical;
+            min-height: 200px;
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            background: #667eea;
+            color: white;
+            transition: background 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #5a67d8;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #d1d5db;
+        }
+
+        .btn-success {
+            background: #10b981;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #059669;
+        }
+
+        .success {
+            color: #10b981;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .hidden { display: none; }
+        .mt-12 { margin-top: 12px; }
+        .mt-16 { margin-top: 16px; }
+        .flex { display: flex; gap: 8px; align-items: center; }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .output-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: #374151;
+        }
+
+        .output-textarea {
+            min-height: 300px;
+            background: #f9fafb;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 13px;
+            color: #1e40af;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Markdown to Telegraph JSON</h1>
+    <p class="subtitle">Convert Markdown to Telegraph API JSON format</p>
+
+    <div class="card">
+        <div class="info-box">
+            Supports: headings, bold, italic, links (with nested parentheses), lists, blockquotes, code blocks, horizontal rules, and HTML figures with captions.
+        </div>
+
+        <div class="mt-12">
+            <label class="label" for="imageUrl">Image URL (optional)</label>
+            <input type="text" class="input" id="imageUrl" placeholder="https://example.com/image.jpg">
+        </div>
+
+        <div class="mt-16">
+            <label class="label" for="markdownInput">Markdown Text</label>
+            <textarea class="textarea" id="markdownInput" placeholder="Enter your Markdown here..."></textarea>
+        </div>
+
+        <div class="flex mt-16">
+            <button class="btn" onclick="convert()">Convert to JSON</button>
+            <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+        </div>
+
+        <div id="success" class="success hidden"></div>
+    </div>
+
+    <div class="card" id="outputCard" style="display: none;">
+        <div class="output-header">
+            <span class="output-title">Telegraph JSON</span>
+            <div class="flex">
+                <button class="btn btn-secondary" onclick="copyFormatted()">Copy Formatted</button>
+                <button class="btn btn-success" onclick="copyMinified()">Copy Minified</button>
+            </div>
+        </div>
+        <textarea class="textarea output-textarea" id="output" readonly></textarea>
+    </div>
+
+    <script>
+        const elements = {
+            imageUrl: document.getElementById('imageUrl'),
+            markdownInput: document.getElementById('markdownInput'),
+            output: document.getElementById('output'),
+            outputCard: document.getElementById('outputCard'),
+            success: document.getElementById('success')
+        };
+
+        let currentJson = null;
+
+        // Extract HTML figures from text
+        function extractFigures(text) {
+            const figures = [];
+            const figureRegex = /<figure>[\s\S]*?<\/figure>/gs;
+            let match;
+
+            while ((match = figureRegex.exec(text)) !== null) {
+                if (match[0].includes('<img')) {
+                    figures.push(match[0]);
+                }
+            }
+
+            return figures;
+        }
+
+        // Parse inline HTML (for figcaptions)
+        function parseInlineHtml(htmlText) {
+            if (!htmlText || htmlText.trim() === '') return [htmlText || ''];
+
+            const nodes = [];
+            let remainingText = htmlText;
+            let position = 0;
+
+            const patterns = [
+                { regex: /<b>(.*?)<\/b>/g, tag: 'b' },
+                { regex: /<strong>(.*?)<\/strong>/g, tag: 'strong' },
+                { regex: /<i>(.*?)<\/i>/g, tag: 'i' },
+                { regex: /<em>(.*?)<\/em>/g, tag: 'em' },
+                { regex: /<a\s+href=["']([^"']+)["'][^>]*>(.*?)<\/a>/g, tag: 'a', isLink: true }
+            ];
+
+            while (position < remainingText.length) {
+                let nearestMatch = null;
+                let nearestPosition = remainingText.length;
+                let matchedPattern = null;
+
+                for (const pattern of patterns) {
+                    pattern.regex.lastIndex = 0;
+                    const match = pattern.regex.exec(remainingText.slice(position));
+                    if (match && position + match.index < nearestPosition) {
+                        nearestMatch = match;
+                        nearestPosition = position + match.index;
+                        matchedPattern = pattern;
+                    }
+                }
+
+                if (nearestMatch) {
+                    if (nearestPosition > position) {
+                        const textBefore = remainingText.slice(position, nearestPosition);
+                        if (textBefore) nodes.push(textBefore);
+                    }
+
+                    if (matchedPattern.isLink) {
+                        nodes.push({
+                            tag: 'a',
+                            attrs: { href: nearestMatch[1] },
+                            children: parseInlineHtml(nearestMatch[2])
+                        });
+                    } else {
+                        nodes.push({
+                            tag: matchedPattern.tag,
+                            children: parseInlineHtml(nearestMatch[1])
+                        });
+                    }
+
+                    position = nearestPosition + nearestMatch[0].length;
+                } else {
+                    const remainingTextSlice = remainingText.slice(position);
+                    if (remainingTextSlice) nodes.push(remainingTextSlice);
+                    break;
+                }
+            }
+
+            return nodes.length ? nodes : [htmlText];
+        }
+
+        // Parse HTML figure to Telegraph JSON (handles multiple images)
+        function parseFigureToTelegraph(figureHtml) {
+            const imgRegex = /<img[^>]+>/g;
+            const imgMatches = figureHtml.match(imgRegex) || [];
+
+            const captionRegex = /<figcaption>(.*?)<\/figcaption>/s;
+            const captionMatch = figureHtml.match(captionRegex);
+
+            let captionChildren = [];
+            if (captionMatch) {
+                captionChildren = parseInlineHtml(captionMatch[1]);
+            }
+
+            if (imgMatches.length === 1) {
+                const srcMatch = imgMatches[0].match(/src=["']([^"']+)["']/);
+
+                const figureObject = {
+                    tag: 'figure',
+                    children: [{
+                        tag: 'img',
+                        attrs: { src: srcMatch ? srcMatch[1] : '' }
+                    }]
+                };
+
+                if (captionChildren.length > 0) {
+                    figureObject.children.push({
+                        tag: 'figcaption',
+                        children: captionChildren
+                    });
+                }
+
+                return [figureObject];
+            }
+
+            // Multiple images: create separate figures
+            const figures = [];
+
+            imgMatches.forEach((imgTag, index) => {
+                const srcMatch = imgTag.match(/src=["']([^"']+)["']/);
+
+                const figureObject = {
+                    tag: 'figure',
+                    children: [{
+                        tag: 'img',
+                        attrs: { src: srcMatch ? srcMatch[1] : '' }
+                    }]
+                };
+
+                // Add caption only to the last figure
+                if (index === imgMatches.length - 1 && captionChildren.length > 0) {
+                    figureObject.children.push({
+                        tag: 'figcaption',
+                        children: captionChildren
+                    });
+                }
+
+                figures.push(figureObject);
+            });
+
+            return figures;
+        }
+
+        // Parse markdown links with balanced parenthesis support
+        function parseBalancedLinks(input) {
+            const links = [];
+            let i = 0;
+
+            while (i < input.length) {
+                if (input[i] === '[') {
+                    const linkStart = i;
+
+                    let bracketDepth = 1;
+                    let j = i + 1;
+                    while (j < input.length && bracketDepth > 0) {
+                        if (input[j] === '[') bracketDepth++;
+                        else if (input[j] === ']') bracketDepth--;
+                        j++;
+                    }
+
+                    if (bracketDepth !== 0) {
+                        i++;
+                        continue;
+                    }
+
+                    const textEnd = j - 1;
+                    const linkText = input.slice(linkStart + 1, textEnd);
+
+                    if (j < input.length && input[j] === '(') {
+                        const urlStart = j + 1;
+
+                        let parenDepth = 0;
+                        let k = urlStart;
+
+                        while (k < input.length) {
+                            const char = input[k];
+
+                            if (char === '(') {
+                                parenDepth++;
+                            } else if (char === ')') {
+                                if (parenDepth === 0) break;
+                                parenDepth--;
+                            } else if (/\s/.test(char)) {
+                                break;
+                            }
+                            k++;
+                        }
+
+                        const url = input.slice(urlStart, k);
+                        const linkEnd = k + 1;
+
+                        links.push({
+                            start: linkStart,
+                            end: linkEnd,
+                            text: linkText,
+                            url: url
+                        });
+
+                        i = linkEnd;
+                        continue;
+                    }
+                }
+                i++;
+            }
+
+            return links;
+        }
+
+        // Process non-link markdown formatting (bold, italic, code)
+        function processNonLinkMarkdown(text) {
+            if (!text || text.trim() === '') return [text || ''];
+
+            const nodes = [];
+            let remainingText = text;
+            let position = 0;
+
+            const patterns = [
+                {
+                    regex: /(\*\*|__)([^*_]+?)\1/g,
+                    process: (match) => ({
+                        tag: 'strong',
+                        children: processNonLinkMarkdown(match[2])
+                    })
+                },
+                {
+                    regex: /(?<!\*|_)(\*|_)([^*_]+?)\1(?!\*|_)/g,
+                    process: (match) => ({
+                        tag: 'em',
+                        children: processNonLinkMarkdown(match[2])
+                    })
+                },
+                {
+                    regex: /`([^`]+)`/g,
+                    process: (match) => ({
+                        tag: 'code',
+                        children: [match[1]]
+                    })
+                }
+            ];
+
+            while (position < remainingText.length) {
+                let nearestMatch = null;
+                let nearestPosition = remainingText.length;
+                let matchedPattern = null;
+
+                for (const pattern of patterns) {
+                    pattern.regex.lastIndex = 0;
+                    const match = pattern.regex.exec(remainingText.slice(position));
+                    if (match && position + match.index < nearestPosition) {
+                        nearestMatch = match;
+                        nearestPosition = position + match.index;
+                        matchedPattern = pattern;
+                    }
+                }
+
+                if (nearestMatch) {
+                    if (nearestPosition > position) {
+                        const textBefore = remainingText.slice(position, nearestPosition);
+                        if (textBefore) nodes.push(textBefore);
+                    }
+                    nodes.push(matchedPattern.process(nearestMatch));
+                    position = nearestPosition + nearestMatch[0].length;
+                } else {
+                    const remainingTextSlice = remainingText.slice(position);
+                    if (remainingTextSlice) nodes.push(remainingTextSlice);
+                    break;
+                }
+            }
+
+            return nodes.length ? nodes : [text];
+        }
+
+        // Enhanced inline markdown parser with proper nesting support
+        function parseInlineMarkdown(text) {
+            if (!text || text.trim() === '') return [text || ''];
+
+            const links = parseBalancedLinks(text);
+
+            const segments = [];
+            let lastEnd = 0;
+
+            for (const link of links) {
+                if (link.start > lastEnd) {
+                    segments.push({ type: 'text', content: text.slice(lastEnd, link.start) });
+                }
+                segments.push({ type: 'link', text: link.text, url: link.url });
+                lastEnd = link.end;
+            }
+            if (lastEnd < text.length) {
+                segments.push({ type: 'text', content: text.slice(lastEnd) });
+            }
+
+            if (segments.length === 0) {
+                segments.push({ type: 'text', content: text });
+            }
+
+            const result = [];
+
+            for (const segment of segments) {
+                if (segment.type === 'link') {
+                    const processedLinkText = processNonLinkMarkdown(segment.text);
+                    result.push({
+                        tag: 'a',
+                        attrs: { href: segment.url },
+                        children: processedLinkText
+                    });
+                } else {
+                    const processed = processNonLinkMarkdown(segment.content);
+                    result.push(...processed);
+                }
+            }
+
+            return result.length ? result : [text];
+        }
+
+        // Main markdown to Telegraph JSON converter
+        function parseMarkdownToTelegraphJson(markdown, image) {
+            const telegraphContent = [];
+
+            // Add image if provided
+            if (image) {
+                telegraphContent.push({
+                    tag: 'figure',
+                    children: [{
+                        tag: 'img',
+                        attrs: { src: image }
+                    }]
+                });
+            }
+
+            // Extract figures from markdown and replace with placeholders
+            const figures = extractFigures(markdown);
+            let processedMarkdown = markdown;
+
+            figures.forEach((figure, index) => {
+                const placeholder = `__FIGURE_${index}__`;
+                processedMarkdown = processedMarkdown.replace(figure, placeholder);
+            });
+
+            // Parse figures to Telegraph JSON
+            const telegraphFigureArrays = figures.map(figure => parseFigureToTelegraph(figure));
+
+            // Parse the main content
+            const lines = processedMarkdown.split('\n');
+            let currentList = null;
+            let listType = null;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const trimmedLine = line.trim();
+
+                if (!trimmedLine) {
+                    if (currentList) {
+                        telegraphContent.push(currentList);
+                        currentList = null;
+                        listType = null;
+                    }
+                    continue;
+                }
+
+                // Check for figure placeholders
+                const figureMatch = trimmedLine.match(/^__FIGURE_(\d+)__$/);
+                if (figureMatch) {
+                    if (currentList) {
+                        telegraphContent.push(currentList);
+                        currentList = null;
+                        listType = null;
+                    }
+
+                    const figureIndex = parseInt(figureMatch[1]);
+                    if (telegraphFigureArrays[figureIndex]) {
+                        telegraphFigureArrays[figureIndex].forEach(fig => {
+                            telegraphContent.push(fig);
+                        });
+                    }
+                    continue;
+                }
+
+                // Handle headings (H1/H2 → h3, H3+ → h4)
+                if (trimmedLine.startsWith('###### ')) {
+                    if (currentList) { telegraphContent.push(currentList); currentList = null; listType = null; }
+                    telegraphContent.push({ tag: 'h4', children: parseInlineMarkdown(trimmedLine.slice(7)) });
+                    continue;
+                }
+                if (trimmedLine.startsWith('##### ')) {
+                    if (currentList) { telegraphContent.push(currentList); currentList = null; listType = null; }
+                    telegraphContent.push({ tag: 'h4', children: parseInlineMarkdown(trimmedLine.slice(6)) });
+                    continue;
+                }
+                if (trimmedLine.startsWith('#### ')) {
+                    if (currentList) { telegraphContent.push(currentList); currentList = null; listType = null; }
+                    telegraphContent.push({ tag: 'h4', children: parseInlineMarkdown(trimmedLine.slice(5)) });
+                    continue;
+                }
+                if (trimmedLine.startsWith('### ')) {
+                    if (currentList) { telegraphContent.push(currentList); currentList = null; listType = null; }
+                    telegraphContent.push({ tag: 'h4', children: parseInlineMarkdown(trimmedLine.slice(4)) });
+                    continue;
+                }
+                if (trimmedLine.startsWith('## ')) {
+                    if (currentList) { telegraphContent.push(currentList); currentList = null; listType = null; }
+                    telegraphContent.push({ tag: 'h3', children: parseInlineMarkdown(trimmedLine.slice(3)) });
+                    continue;
+                }
+                if (trimmedLine.startsWith('# ')) {
+                    if (currentList) { telegraphContent.push(currentList); currentList = null; listType = null; }
+                    telegraphContent.push({ tag: 'h3', children: parseInlineMarkdown(trimmedLine.slice(2)) });
+                    continue;
+                }
+
+                // Handle unordered list items
+                if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+                    const listItemText = trimmedLine.replace(/^[*-] /, '');
+
+                    if (!currentList || listType !== 'ul') {
+                        if (currentList) telegraphContent.push(currentList);
+                        currentList = { tag: 'ul', children: [] };
+                        listType = 'ul';
+                    }
+
+                    currentList.children.push({
+                        tag: 'li',
+                        children: parseInlineMarkdown(listItemText)
+                    });
+                    continue;
+                }
+
+                // Handle blockquotes
+                if (trimmedLine.startsWith('> ')) {
+                    if (currentList) { telegraphContent.push(currentList); currentList = null; listType = null; }
+                    telegraphContent.push({
+                        tag: 'blockquote',
+                        children: parseInlineMarkdown(trimmedLine.slice(2))
+                    });
+                    continue;
+                }
+
+                // Handle horizontal rules
+                if (trimmedLine === '---' || trimmedLine === '***') {
+                    if (currentList) { telegraphContent.push(currentList); currentList = null; listType = null; }
+                    telegraphContent.push({ tag: 'hr' });
+                    continue;
+                }
+
+                // Handle code blocks
+                if (trimmedLine.startsWith('```')) {
+                    if (currentList) { telegraphContent.push(currentList); currentList = null; listType = null; }
+
+                    let codeContent = [];
+                    i++;
+                    while (i < lines.length && !lines[i].trim().startsWith('```')) {
+                        codeContent.push(lines[i]);
+                        i++;
+                    }
+
+                    if (codeContent.length > 0) {
+                        telegraphContent.push({
+                            tag: 'pre',
+                            children: [codeContent.join('\n')]
+                        });
+                    }
+                    continue;
+                }
+
+                // Regular paragraph
+                if (currentList) {
+                    telegraphContent.push(currentList);
+                    currentList = null;
+                    listType = null;
+                }
+
+                telegraphContent.push({
+                    tag: 'p',
+                    children: parseInlineMarkdown(trimmedLine)
+                });
+            }
+
+            // Close any remaining open list
+            if (currentList) {
+                telegraphContent.push(currentList);
+            }
+
+            return telegraphContent;
+        }
+
+        function convert() {
+            const imageUrl = elements.imageUrl.value.trim();
+            const markdown = elements.markdownInput.value;
+
+            if (!markdown.trim()) {
+                showSuccess('Please enter some Markdown text');
+                return;
+            }
+
+            currentJson = parseMarkdownToTelegraphJson(markdown, imageUrl);
+            elements.output.value = JSON.stringify(currentJson, null, 2);
+            elements.outputCard.style.display = 'block';
+            showSuccess('Converted successfully!');
+        }
+
+        function clearAll() {
+            elements.imageUrl.value = '';
+            elements.markdownInput.value = '';
+            elements.output.value = '';
+            elements.outputCard.style.display = 'none';
+            currentJson = null;
+            hideSuccess();
+        }
+
+        function copyFormatted() {
+            if (!currentJson) return;
+            navigator.clipboard.writeText(JSON.stringify(currentJson, null, 2))
+                .then(() => showSuccess('Formatted JSON copied!'))
+                .catch(() => fallbackCopy(JSON.stringify(currentJson, null, 2)));
+        }
+
+        function copyMinified() {
+            if (!currentJson) return;
+            navigator.clipboard.writeText(JSON.stringify(currentJson))
+                .then(() => showSuccess('Minified JSON copied!'))
+                .catch(() => fallbackCopy(JSON.stringify(currentJson)));
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showSuccess('Copied to clipboard!');
+        }
+
+        function showSuccess(message) {
+            elements.success.textContent = message;
+            elements.success.classList.remove('hidden');
+        }
+
+        function hideSuccess() {
+            elements.success.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
