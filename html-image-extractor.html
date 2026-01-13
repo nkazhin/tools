@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Image Extractor</title>
+    <meta name="description" content="Extract image data (position, dimensions, src) from HTML pages to JSON">
+    <meta name="category" content="Development">
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9fafb;
+            color: #1f2937;
+            line-height: 1.5;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0 0 8px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin: 0 0 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: 'SF Mono', Monaco, 'Inconsolata', 'Fira Code', monospace;
+            resize: vertical;
+            min-height: 160px;
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            background: #667eea;
+            color: white;
+            transition: background 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #5a67d8;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #d1d5db;
+        }
+
+        .btn-success {
+            background: #10b981;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #059669;
+        }
+
+        .error {
+            color: #ef4444;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .success {
+            color: #10b981;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .hidden { display: none; }
+        .mt-16 { margin-top: 16px; }
+        .flex { display: flex; gap: 8px; align-items: center; }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .output-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: #374151;
+        }
+
+        .output-textarea {
+            min-height: 300px;
+            background: #f9fafb;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 13px;
+            color: #1e40af;
+            margin-bottom: 16px;
+        }
+
+        .info-box code {
+            background: #dbeafe;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <h1>HTML Image Extractor</h1>
+    <p class="subtitle">Extract image data from HTML pages to JSON format</p>
+
+    <div class="card">
+        <div class="info-box">
+            Extracts images from HTML with <code>div.page</code> containing <code>div.image</code> elements.
+            Outputs JSON with page number, position, dimensions, and src.
+        </div>
+
+        <label class="label" for="htmlInput">Paste HTML</label>
+        <textarea class="textarea" id="htmlInput" placeholder="Paste your HTML here..."></textarea>
+
+        <div class="flex mt-16">
+            <button class="btn" id="extractBtn" onclick="extractImages()">Extract Images</button>
+            <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+        <div id="success" class="success hidden"></div>
+    </div>
+
+    <div class="card" id="outputCard" style="display: none;">
+        <div class="output-header">
+            <span class="output-title">Extracted Image Data</span>
+            <button class="btn btn-success" onclick="copyOutput()">Copy JSON</button>
+        </div>
+        <textarea class="textarea output-textarea" id="output" readonly></textarea>
+    </div>
+
+    <script>
+        const elements = {
+            htmlInput: document.getElementById('htmlInput'),
+            output: document.getElementById('output'),
+            outputCard: document.getElementById('outputCard'),
+            error: document.getElementById('error'),
+            success: document.getElementById('success')
+        };
+
+        function extractImages() {
+            hideMessages();
+
+            const htmlInput = elements.htmlInput.value.trim();
+            if (!htmlInput) {
+                showError('Please paste some HTML content');
+                return;
+            }
+
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlInput, 'text/html');
+
+                const pageElements = doc.querySelectorAll('div.page');
+
+                if (pageElements.length === 0) {
+                    showError('No pages found in the HTML. Looking for div.page elements.');
+                    return;
+                }
+
+                const results = [];
+
+                Array.from(pageElements).forEach((pageElement, pageIndex) => {
+                    const imageDivs = pageElement.querySelectorAll('div.image');
+
+                    Array.from(imageDivs).forEach((div, imageIndex) => {
+                        const style = div.getAttribute('style') || '';
+                        const leftMatch = style.match(/left:([\d.]+)px/);
+                        const topMatch = style.match(/top:([\d.]+)px/);
+
+                        const left = leftMatch ? parseFloat(leftMatch[1]) : 0;
+                        const top = topMatch ? parseFloat(topMatch[1]) : 0;
+
+                        const img = div.querySelector('img');
+                        if (!img) return;
+
+                        const width = parseInt(img.getAttribute('width'), 10) || 0;
+                        const height = parseInt(img.getAttribute('height'), 10) || 0;
+                        const src = img.getAttribute('src') || '';
+
+                        results.push({
+                            page: pageIndex + 1,
+                            image: imageIndex + 1,
+                            position: { left, top },
+                            dimensions: { width, height },
+                            src: src
+                        });
+                    });
+                });
+
+                if (results.length === 0) {
+                    showError('No images found in the pages. Looking for div.image > img elements.');
+                    return;
+                }
+
+                const output = JSON.stringify(results, null, 2);
+                elements.output.value = output;
+                elements.outputCard.style.display = 'block';
+                showSuccess(`Extracted ${results.length} image(s) from ${pageElements.length} page(s)`);
+
+            } catch (err) {
+                showError('Error parsing HTML: ' + err.message);
+            }
+        }
+
+        function clearAll() {
+            elements.htmlInput.value = '';
+            elements.output.value = '';
+            elements.outputCard.style.display = 'none';
+            hideMessages();
+        }
+
+        function copyOutput() {
+            navigator.clipboard.writeText(elements.output.value)
+                .then(() => showSuccess('Copied to clipboard!'))
+                .catch(() => {
+                    elements.output.select();
+                    document.execCommand('copy');
+                    showSuccess('Copied to clipboard!');
+                });
+        }
+
+        function showError(message) {
+            elements.error.textContent = message;
+            elements.error.classList.remove('hidden');
+            elements.success.classList.add('hidden');
+        }
+
+        function showSuccess(message) {
+            elements.success.textContent = message;
+            elements.success.classList.remove('hidden');
+            elements.error.classList.add('hidden');
+        }
+
+        function hideMessages() {
+            elements.error.classList.add('hidden');
+            elements.success.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
