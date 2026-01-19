@@ -28,6 +28,13 @@ jobs:
           from pathlib import Path
           from datetime import datetime
 
+          # Favorite tools (shown at top)
+          FAVORITES = [
+              'telegram-broadcaster-markdown.html',
+              'image-uploader.html',
+              'pdf-uploader.html'
+          ]
+
           # Scan for HTML files
           tools = []
           for f in Path('.').glob('*.html'):
@@ -56,7 +63,8 @@ jobs:
                   'file': f.name,
                   'title': title,
                   'description': description,
-                  'category': category
+                  'category': category,
+                  'is_favorite': f.name in FAVORITES
               })
 
           # Group by category
@@ -149,6 +157,32 @@ jobs:
                       font-size: 13px;
                       color: #888;
                   }
+                  .favorites {
+                      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+                      border-radius: 12px;
+                      padding: 16px 20px;
+                      margin-bottom: 32px;
+                  }
+                  .favorites h2 {
+                      font-size: 14px;
+                      text-transform: uppercase;
+                      letter-spacing: 0.5px;
+                      color: #92400e;
+                      margin: 0 0 12px;
+                      font-weight: 600;
+                  }
+                  .favorites .tool {
+                      border-bottom-color: rgba(146, 64, 14, 0.15);
+                  }
+                  .favorites .tool:last-child {
+                      border-bottom: none;
+                  }
+                  .favorites .tool a {
+                      color: #92400e;
+                  }
+                  .favorites .tool-desc {
+                      color: #a16207;
+                  }
                   @media (max-width: 600px) {
                       body { padding: 16px 12px; }
                       h1 { font-size: 24px; }
@@ -158,6 +192,28 @@ jobs:
           <body>
               <h1>Tools</h1>
               <p class="subtitle">''' + str(len(tools)) + ''' tools available</p>
+          '''
+
+          # Add favorites section
+          favorite_tools = [t for t in tools if t['is_favorite']]
+          # Sort favorites in the order defined in FAVORITES list
+          favorite_tools.sort(key=lambda x: FAVORITES.index(x['file']) if x['file'] in FAVORITES else 999)
+
+          if favorite_tools:
+              html += '''
+              <div class="favorites">
+                  <h2>⭐ Favorites</h2>
+          '''
+              for tool in favorite_tools:
+                  html += f'''        <div class="tool">
+                      <a href="{tool['file']}">{tool['title']}</a>
+          '''
+                  if tool['description']:
+                      html += f'''            <div class="tool-desc">{tool['description']}</div>
+          '''
+                  html += '''        </div>
+          '''
+              html += '''    </div>
           '''
 
           for cat in sorted_cats:

@@ -878,22 +878,36 @@ code block
             }
         }
 
+        // Calculate character count excluding URLs from markdown links [text](url)
+        // Telegram counts only the visible text, not the URL
+        function getTelegramEffectiveLength(text) {
+            // Replace [text](url) with just text for counting purposes
+            const withoutLinkUrls = text.replace(/\[([^\]]*)\]\([^)]+\)/g, '$1');
+            return withoutLinkUrls.length;
+        }
+
         function updateCharCounter() {
             const text = UIElements.messageInput.value || '';
             const limit = state.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
-            const charCount = text.length;
+            const rawCharCount = text.length;
+            const effectiveCharCount = getTelegramEffectiveLength(text);
 
             const counter = document.getElementById('charCounter');
-            counter.textContent = `${charCount} / ${limit} characters`;
-            counter.classList.toggle('danger', charCount > limit);
 
-            // Show warning if close to limit
-            if (charCount > limit * 0.9 && charCount <= limit) {
-                counter.style.color = '#f59e0b'; // Orange warning
-            } else if (charCount > limit) {
-                counter.style.color = '#ef4444'; // Red danger
+            // Show both counts if they differ (links present)
+            if (rawCharCount !== effectiveCharCount) {
+                counter.textContent = `${effectiveCharCount} effective / ${rawCharCount} raw / ${limit} limit`;
+            } else {
+                counter.textContent = `${rawCharCount} / ${limit} characters`;
+            }
+
+            // Color is FYI only - yellow if over limit, but never blocks
+            if (effectiveCharCount > limit) {
+                counter.style.color = '#f59e0b'; // Orange warning (FYI)
+                counter.classList.remove('danger');
             } else {
                 counter.style.color = '#6b7280'; // Normal gray
+                counter.classList.remove('danger');
             }
 
             updateButtonStates();
@@ -1190,14 +1204,8 @@ code block
                 return;
             }
 
-            // Check character length
-            const limit = broadcastData.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
-            const charCount = broadcastData.message.length;
-            if (charCount > limit) {
-                const messageType = broadcastData.mediaType !== 'none' ? 'caption' : 'message';
-                alert(`Message Too Long\n\nYour ${messageType} exceeds the ${limit} character limit.\n\nCurrent length: ${charCount} characters\nOver by: ${charCount - limit} characters\n\nPlease shorten your message.`);
-                return;
-            }
+            // Character length check is FYI only - Telegram will reject if truly too long
+            // but markdown links don't count their URLs, so we trust the user
 
             // Validate media if present
             if (broadcastData.mediaType === 'upload' && !broadcastData.mediaFile) {
@@ -1504,22 +1512,19 @@ code block
 
         function updateButtonStates() {
             const text = UIElements.messageInput.value || '';
-            const limit = state.mediaType !== 'none' ? CAPTION_LIMIT : TEXT_LIMIT;
-            const charCount = text.length;
 
             // Message is valid if not empty OR if media is present (captions are optional)
-            const messageValid = charCount > 0 || state.mediaType !== 'none';
+            const messageValid = text.length > 0 || state.mediaType !== 'none';
 
+            // Character limit is FYI only - never blocks sending
             const canBroadcast = state.tokenValidated &&
                                  state.validatedRecipients.length > 0 &&
                                  !state.broadcasting &&
-                                 messageValid &&
-                                 charCount <= limit;
+                                 messageValid;
 
             const canTest = state.tokenValidated &&
                             !state.broadcasting &&
-                            messageValid &&
-                            charCount <= limit;
+                            messageValid;
 
             UIElements.broadcastBtn.disabled = !canBroadcast;
             UIElements.testBtn.disabled = !canTest;
